@@ -29,6 +29,7 @@ def model_422378_input():
     #Wykonywanie predykcji
     result=model_422378.run_model_422378(input=input)
     return jsonify({'result': result}), 200
+
 #######################################################################
 
 @app.route('/api/model_123456', methods=['POST'])
@@ -40,7 +41,18 @@ def model_123456_input():
     result=model_123456.run_model_123456(input=input)
     return jsonify({'result': result}), 200
 
+####################################################################
 
+def run_model_422378(input):
+    #Wczytywanie modelu z pliku
+    path= os.path.dirname(file)
+
+    with open(path+"/model.pkl","rb")as f:
+        model= pickle.load(f)
+    #Wykonywanie predykcji
+    result=model.predict(input)
+    result=float(result[0])
+    return result
 
 
 if __name__ == '__main__':

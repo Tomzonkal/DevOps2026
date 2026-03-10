@@ -1,5 +1,6 @@
 
 # W tej sekcji dodajemy nasz nowy model 
+from model_nrNaszegoIndeksu import model as model_422370
 from flask import Flask, request, jsonify
 from model_0000 import model as model_0000
 from model_123456 import model as model_123456
@@ -21,6 +22,16 @@ def model_00000_input():
     return jsonify({'result': result}), 200
 
 #######################################################################
+
+@app.route('/api/model_422370', methods=['POST'])
+def model_422370_input():
+    # Pobieranie treści zapytania w naszym przypadku array[4]
+    data = request.get_json()
+    input=data["input"]
+    #Wykonywanie predykcji
+    result=model_422370.run_model_422370(input=input)
+    return jsonify({'result': result}), 200
+
 
 @app.route('/api/model_123456', methods=['POST'])
 def model_123456_input():

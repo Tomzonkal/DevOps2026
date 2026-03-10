@@ -1,7 +1,7 @@
 import pickle 
 import os 
 
-def run_model_0000(input):
+def run_model_419371(input):
     #Wczytywanie modelu z pliku
     path= os.path.dirname(__file__)
     

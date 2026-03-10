@@ -1,6 +1,6 @@
 
 # W tej sekcji dodajemy nasz nowy model 
-from model_nrNaszegoIndeksu import model as model_422370
+from model_422370 import model as model_422370
 from flask import Flask, request, jsonify
 from model_0000 import model as model_0000
 from model_123456 import model as model_123456

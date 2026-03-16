@@ -13,7 +13,7 @@ app = Flask(__name__)
 
 ##### Ta funkcja powinna być skopiowana do utowrzenia nowego endpointa####################3
 @app.route('/api/model_422367', methods=['POST'])
-def model_00000_input():
+def model_422367_input():
     # Pobieranie treści zapytania w naszym przypadku array[4]
     data = request.get_json()
     input=data["input"]

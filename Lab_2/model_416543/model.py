@@ -1,8 +1,5 @@
 import pickle 
 import os 
-
-###### Drugie rozwiązanie ###########
-
 def run_model_v2(input):
     #Wczytywanie modelu z pliku
     path= "./model_0000/model.pkl"

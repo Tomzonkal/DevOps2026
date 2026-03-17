@@ -1,9 +1,9 @@
 from flask import Flask, request, jsonify
-from model_0000 import model
+from model_419534 import model
 
 app = Flask(__name__)
 
-@app.route('/api/model_v1', methods=['POST'])
+@app.route('/api/model_v2', methods=['POST'])
 def model_v1_input():
     data = request.get_json()
     input = data["input"]

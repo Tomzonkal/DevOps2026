@@ -3,7 +3,7 @@ import os
 
 ####### Trzecie rozwiązanie ###########
 
-def run_model_v3(input):
+def run_model_419827_v3(input):
     #Wczytywanie modelu z pliku
     path= os.path.dirname(__file__)
     

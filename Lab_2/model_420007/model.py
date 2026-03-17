@@ -1,17 +1,41 @@
-import pickle 
-import os 
+import pickle
+import os
 
 ###### Pierwsze rozwiązanie ###########
 
 def run_model_v1(input):
-    #Wczytywanie modelu z pliku
-    path= os.path.dirname(__file__)
+    path = os.path.dirname(__file__)
     
-    with open(path+"/model.pkl","rb")as f:
-        model= pickle.load(f)
-    #Wykonywanie predykcji    
-    result=model.predict(input)
-    result=float(result[0])
+    with open(path + "/model.pkl", "rb") as f:
+        model = pickle.load(f)
+
+    result = model.predict(input)
+    result = float(result[0])
     return result
 
 
+###### Drugie rozwiązanie ###########
+
+def run_model_v2(input):
+    path = os.path.dirname(__file__)
+    
+    with open(path + "/model.pkl", "rb") as f:
+        model = pickle.load(f)
+        result = model.predict(input)
+        result = float(result[0])
+
+    return result
+
+
+###### Trzecie rozwiązanie ###########
+
+def run_model_v3(input):
+    path = os.path.dirname(__file__)
+    
+    f = open(path + "/model.pkl", "rb")
+    model = pickle.load(f)
+    f.close()
+
+    result = model.predict(input)
+    result = float(result[0])
+    return result

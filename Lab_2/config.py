@@ -1,2 +1,2 @@
-INDEX = "v1"
-id_list = ["v1"]
+INDEX = "422378"
+id_list = ["422378"]

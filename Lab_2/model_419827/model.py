@@ -3,9 +3,9 @@ import os
 
 ###### Drugie rozwiązanie ###########
 
-def run_model_v2(input):
+def run_model_419827_v2(input):
     #Wczytywanie modelu z pliku
-    path= "./model_0000/model.pkl"
+    path= "./model_419827/model.pkl"
     with open(path,"rb")as f:
         model= pickle.load(f)    
         result=model.predict(input)

@@ -3,11 +3,11 @@ from model_419827 import model
 
 app = Flask(__name__)
 
-@app.route('/api/model_v1', methods=['POST'])
-def model_v1_input():
+@app.route('/api/model_419827_v1', methods=['POST'])
+def model_419827_v1_input():
     data = request.get_json()
     input = data["input"]
-    result_v1 = model.run_model_v1(input)
+    result_v1 = model.run_model_419827_v1(input)
     return jsonify({'result': result_v1}), 200
 
 if __name__ == '__main__':

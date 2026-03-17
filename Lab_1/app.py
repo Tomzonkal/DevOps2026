@@ -3,6 +3,7 @@
 from flask import Flask, request, jsonify
 from model_0000 import model as model_0000
 from model_123456 import model as model_123456
+from model_421307 import model as model_421307
 
 
 ###########################################
@@ -18,6 +19,16 @@ def model_00000_input():
     input=data["input"]
     #Wykonywanie predykcji
     result=model_0000.run_model_0000(input=input)
+    return jsonify({'result': result}), 200
+
+
+@app.route('/api/model_421307', methods=['POST'])
+def model_421307_input():
+    # Pobieranie treści zapytania w naszym przypadku array[4]
+    data = request.get_json()
+    input=data["input"]
+    #Wykonywanie predykcji
+    result=model_421307.run_model_421307(input=input)
     return jsonify({'result': result}), 200
 
 #######################################################################

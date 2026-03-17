@@ -13,4 +13,3 @@ def run_model_421068_v1(input):
     result=model.predict(input)
     result=float(result[0])
     return result
-

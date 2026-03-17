@@ -13,3 +13,18 @@ def run_model_421068_v1(input):
     result=model.predict(input)
     result=float(result[0])
     return result
+
+import pickle
+import os
+
+###### Drugie rozwiązanie ###########
+
+def run_model_421068_v2(input):
+    #Wczytywanie modelu z pliku
+    path= "./model_421068/model.pkl"
+    with open(path,"rb")as f:
+        model= pickle.load(f)
+        result=model.predict(input)
+        result=float(result[0])
+    return result
+

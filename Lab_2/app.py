@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify
+from model_416543 import model as model_416543
 from model_0000 import model
 
 app = Flask(__name__)
@@ -7,7 +8,7 @@ app = Flask(__name__)
 def model_v1_input():
     data = request.get_json()
     input = data["input"]
-    result_v1 = model.run_model_v1(input)
+    result_v1 =  model_416543.run_model_416543_v1(input=input)
     return jsonify({'result': result_v1}), 200
 
 if __name__ == '__main__':

@@ -37,7 +37,7 @@ def model_419845_input():
     data = request.get_json()
     input=data["input"]
     #Wykonywanie predykcji
-    result=model_0000.run_model_419845(input=input)
+    result=model_419845.run_model_419845(input=input)
     return jsonify({'result': result}), 200
 
 #######################################################################

@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify
 from model_0000 import model
+from model_420344 import model as model_420344
 
 app = Flask(__name__)
 
@@ -9,6 +10,13 @@ def model_v1_input():
     input = data["input"]
     result_v1 = model.run_model_v1(input)
     return jsonify({'result': result_v1}), 200
+
+@app.route('/api/model_420344', methods=['POST'])
+def model_420344_input():
+    data = request.get_json()
+    input = data["input"]
+    result = model_420344.run_model_v2(input)
+    return jsonify({'result': result}), 200
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", debug=True, port=5000)

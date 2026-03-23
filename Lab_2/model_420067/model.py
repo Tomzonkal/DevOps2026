@@ -1,5 +1,6 @@
 import pickle 
 import os 
+<<<<<<< HEAD
 
 ###### Pierwsze rozwiązanie ###########
 
@@ -17,6 +18,8 @@ def run_model_v1(input):
 
 ###### Drugie rozwiązanie ###########
 
+=======
+>>>>>>> lab_2/new_branch_420067_v2
 def run_model_v2(input):
     #Wczytywanie modelu z pliku
     path= "./model_0000/model.pkl"
@@ -24,6 +27,7 @@ def run_model_v2(input):
         model= pickle.load(f)    
         result=model.predict(input)
         result=float(result[0])
+<<<<<<< HEAD
     return result
 
 
@@ -39,4 +43,6 @@ def run_model_v3(input):
     #Wykonywanie predykcji    
     result=model.predict(input)
     result=float(result[0])
+=======
+>>>>>>> lab_2/new_branch_420067_v2
     return result

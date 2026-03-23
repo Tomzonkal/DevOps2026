@@ -89,10 +89,79 @@ git revert hash_commita
 - 6.5 Rozwiązać konflikty, wypchnąć zmiany i zweryfikować, czy zmiany zostały odwrócone
 
 
-### 7 Sprawozdanie
+### 7 Pre-commit hooks
 
-- 7.1 Sprawozdanie ma być dokumentacją pracy, tj. opisem wykonanych kroków wraz ze zdjęciami i opisem wykorzystywanych metod. Ma ono pozwolić na odtworzenie zadania z wykorzystaniem instrukcji ze sprawozdania.
-- 7.2 Ma być ono zapisane za pomocą Markdown w nowo stworzonym folderze.
+Laboratorium nawiązuje do tematu Git hooks omówionego we wstępie teoretycznym.
+Narzędzie `pre-commit` automatycznie uruchamia hooki przed każdym commitem — mogą one sprawdzać i **naprawiać** kod zanim trafi do repozytorium.
+
+#### 7.1 Zainstalować narzędzie pre-commit
+
+```bash
+pip install pre-commit
+pre-commit --version
+```
+
+#### 7.2 Skopiować folder `env_0000` do `env_nrIndeksu`
+
+```bash
+cp -r Lab_3/env_0000 Lab_3/env_123456
+```
+
+#### 7.3 Zainstalować hooki w lokalnym repozytorium
+
+Z poziomu głównego katalogu repozytorium:
+
+```bash
+pre-commit install
+```
+
+Po tej komendzie w `.git/hooks/pre-commit` pojawi się skrypt uruchamiany automatycznie przy każdym `git commit`.
+
+#### 7.4 Spróbować zacommitować celowo zepsuty plik
+
+W folderze `env_nrIndeksu/` znajduje się plik `bad_code.py` z celowymi błędami formatowania (niezgodnymi z PEP 8): brak spacji przy operatorach, zła kolejność importów, zbyt długie linie.
+
+```bash
+git add Lab_3/env_nrIndeksu/bad_code.py
+git commit -m "dodano bad_code.py - przed naprawą"
+```
+
+**Obserwacja:** Commit nie przejdzie. Hooki `black` i `isort` automatycznie zmodyfikują plik. Zobaczysz komunikat:
+
+```
+black....................................................................Failed
+- hook id: black
+- files were modified by this hook
+
+isort....................................................................Failed
+- hook id: isort
+- files were modified by this hook
+```
+
+#### 7.5 Sprawdzić zmiany wprowadzone przez hooki
+
+```bash
+git diff Lab_3/env_nrIndeksu/bad_code.py
+```
+
+Zwróć uwagę co dokładnie zostało zmienione (wklej diff do sprawozdania).
+
+#### 7.6 Dodać naprawiony plik i wykonać commit ponownie
+
+```bash
+git add Lab_3/env_nrIndeksu/bad_code.py
+git commit -m "dodano bad_code.py - po naprawie przez pre-commit"
+```
+
+Tym razem commit przejdzie pomyślnie — hooki nie znajdą już nic do naprawy.
+
+---
+
+### 8 Sprawozdanie
+
+- 8.1 Sprawozdanie ma być dokumentacją pracy, tj. opisem wykonanych kroków wraz ze zdjęciami i opisem wykorzystywanych metod. Ma ono pozwolić na odtworzenie zadania z wykorzystaniem instrukcji ze sprawozdania.
+- 8.2 Ma być ono zapisane za pomocą Markdown w nowo stworzonym folderze.
+- 8.3 W sprawozdaniu opisać zadanie 7: co zrobiły hooki, wkleić diff z kroku 7.5, wyjaśnić dlaczego drugi commit przeszedł.
 
 
 ### Zaliczenie laboratoriów

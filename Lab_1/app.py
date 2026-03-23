@@ -3,7 +3,7 @@
 from flask import Flask, request, jsonify
 from model_0000 import model as model_0000
 from model_123456 import model as model_123456
-
+from model_416543 import model as model_416543
 
 ###########################################
 
@@ -31,7 +31,15 @@ def model_123456_input():
     result=model_123456.run_model_123456(input=input)
     return jsonify({'result': result}), 200
 
-
+#DODANE MICHAL
+@app.route('/api/model_416543', methods=['POST'])
+def model_416543_input():
+    # Pobieranie treści zapytania w naszym przypadku array[4]
+    data = request.get_json()
+    input=data["input"]
+    #Wykonywanie predykcji
+    result=model_416543.run_model_416543(input=input)
+    return jsonify({'result': result}), 200
 
 
 if __name__ == '__main__':

@@ -1,6 +1,6 @@
 # dev_ops_lato_2026
 ## ZADANIE 1 GITHUB
-
+      
 Cel laboratoriów. 
 Celem laboratoriów jest zapoznanie się z podstawowymi komendami gita i używaniem go do tworzenia gałęzi, commitów, wypychania zmian (push) i tworzenia pull requestów.
 

@@ -1,4 +1,4 @@
-
+from model_415942 import model as model_415942
 # W tej sekcji dodajemy nasz nowy model 
 from flask import Flask, request, jsonify
 from model_0000 import model as model_0000
@@ -18,6 +18,15 @@ def model_00000_input():
     input=data["input"]
     #Wykonywanie predykcji
     result=model_0000.run_model_0000(input=input)
+    return jsonify({'result': result}), 200
+
+@app.route('/api/model_415942', methods=['POST'])
+def model_415942_input():
+    # Pobieranie treści zapytania w naszym przypadku array[4]
+    data = request.get_json()
+    input=data["input"]
+    #Wykonywanie predykcji
+    result=model_415942.run_model_415942(input=input)
     return jsonify({'result': result}), 200
 
 #######################################################################

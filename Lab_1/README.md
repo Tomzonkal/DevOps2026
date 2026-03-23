@@ -13,7 +13,7 @@ Aby zaliczyć laboratoria należy wykonać następujące kroki.
 - 2.1 Ściągnąć repozytorium za pomocą komendy `git clone` (jeżeli nie zadziała, klucz SSH jest źle skonfigurowany).
 
 ```bash
-git clone git@github.com:metodyki-dev-ops/dev_ops_lato_2026.git
+git clone git@github.com:Tomzonkal/DevOps2026.git
 ```
 ### 3 Stworzenie gałęzi roboczej 
 - 3.1 W celu stworzenia gałęzi w lokalnym repozytorium należy wykonać komendę `git switch -c nazwa_gałęzi`. Aby uniknąć konfliktów, należy nazwać gałąź **lab_1/new_branch_nrIndeksu**.

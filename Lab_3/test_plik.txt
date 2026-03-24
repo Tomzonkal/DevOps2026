@@ -1,2 +1,1 @@
 to jest testowy tekst
-dodatkowy tekst po edycji

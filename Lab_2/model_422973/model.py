@@ -3,7 +3,7 @@ import os
 
 ###### Drugie rozwiązanie ###########
 
-def run_model_422973(input):
+def run_model_422973_v2(input):
     #Wczytywanie modelu z pliku
     path= "./model_0000/model.pkl"
     with open(path,"rb")as f:

@@ -15,7 +15,7 @@ def run_model_v1(input):
     return result
 ###### Drugie rozwiązanie ###########
 
-def run_model_422973(input):
+def run_model_422973_v1(input):
     #Wczytywanie modelu z pliku
     path= "./model_0000/model.pkl"
     with open(path,"rb")as f:

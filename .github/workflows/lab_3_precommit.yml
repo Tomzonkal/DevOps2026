@@ -1,0 +1,29 @@
+name: lab_3_precommit
+
+on:
+  pull_request:
+    branches:
+      - TEST
+      - main
+
+jobs:
+  pre-commit:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install pre-commit
+        run: pip install pre-commit
+
+      - name: Copy pre-commit config from env_0000
+        run: cp Lab_3/env_0000/.pre-commit-config.yaml .pre-commit-config.yaml
+
+      - name: Run pre-commit on all files
+        run: pre-commit run --all-files

@@ -3,8 +3,8 @@ from model_415942 import model
 
 app = Flask(__name__)
 
-@app.route('/api/model_v3', methods=['POST'])
-def model_v1_input():
+@app.route('/api/model_415942_v3', methods=['POST'])
+def model_v3_input():
     data = request.get_json()
     input = data["input"]
     result_v3 = model.run_model_v3(input)

@@ -1,4 +1,4 @@
-
+#dodany komentarz
 # W tej sekcji dodajemy nasz nowy model 
 from flask import Flask, request, jsonify
 

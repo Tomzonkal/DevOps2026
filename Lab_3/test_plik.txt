@@ -1,2 +1,1 @@
 Przykladowa linia
-dodana linijka do git revert

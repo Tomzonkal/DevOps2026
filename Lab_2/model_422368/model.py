@@ -1,6 +1,6 @@
 import pickle 
 import os 
-def run_model_v3(input):
+def run_model_v1(input):
     #Wczytywanie modelu z pliku
     path= os.path.dirname(__file__)
     f=open(path+"/model.pkl","rb")

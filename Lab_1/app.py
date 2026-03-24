@@ -1,8 +1,7 @@
 # W tej sekcji dodajemy nasz nowy model
-from flask import Flask, request, jsonify
+from flask import Flask, jsonify, request
 from model_0000 import model as model_0000
 from model_123456 import model as model_123456
-
 
 ###########################################
 

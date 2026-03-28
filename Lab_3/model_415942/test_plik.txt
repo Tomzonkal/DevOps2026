@@ -1,1 +1,2 @@
 tekst 0123456789
+wersja 2

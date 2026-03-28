@@ -1,6 +1,7 @@
 import pickle 
 import os 
 
+
 def run_model_v1(input):
     #Wczytywanie modelu z pliku
     path= os.path.dirname(__file__)
@@ -11,6 +12,7 @@ def run_model_v1(input):
     result=float(result[0])
     return result
 
+
 def run_model_v2(input):
     #Wczytywanie modelu z pliku
     path= "./model_422368/model.pkl"
@@ -19,6 +21,7 @@ def run_model_v2(input):
         result=model.predict(input)
         result=float(result[0])
     return result
+
 
 def run_model_v3(input):
     #Wczytywanie modelu z pliku

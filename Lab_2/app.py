@@ -16,7 +16,8 @@ def model_418247_input():
     data = request.get_json()
     input = data["input"]
     result_v1 = model_418247.run_model_v1(input)
-    return jsonify({'result': result_v1}), 200
+    result_v2 = model_418247.run_model_v2(input)
+    return jsonify({'result': [result_v1, result_v2]}), 200
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", debug=True, port=5000)

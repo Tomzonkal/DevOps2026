@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify
-from model_0000 import model
-from model_419371 import model as model_v2
+from model_419371 import model
+
 app = Flask(__name__)
 
 @app.route('/api/model_v2', methods=['POST'])

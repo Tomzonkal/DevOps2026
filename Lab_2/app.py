@@ -4,7 +4,7 @@ from model_401967 import model as model
 app = Flask(__name__)
 
 @app.route('/api/model_401967', methods=['POST'])
-def model_v1_input():
+def model_input():
     data = request.get_json()
     input = data["input"]
     result_v1 = model.run_model_v1(input)

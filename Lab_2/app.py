@@ -1,11 +1,10 @@
 from flask import Flask, request, jsonify
-from model_0000 import model
-from model_401967 import model
+from model_401967 import model as model
 
 app = Flask(__name__)
 
-@app.route('/api/model_v2', methods=['POST'])
-def model_v2_input():
+@app.route('/api/model_401967', methods=['POST'])
+def model_input():
     data = request.get_json()
     input = data["input"]
     result_v2 = model.run_model_v2(input)

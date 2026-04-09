@@ -7,6 +7,7 @@ def run_model_v1(input):
         model = pickle.load(f)
     result = model.predict(input)
     result = float(result[0])
+    return result
 
 def run_model_v2(input):
     path = "./model_401967/model.pkl"

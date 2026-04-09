@@ -18,7 +18,6 @@ def model_00000_input():
     result.append(model_0000.run_model_v1(input=input))
     return jsonify({'result': result}), 200
 
-#######################################################################
 
 
 

@@ -10,6 +10,12 @@ def model_v1_input():
     input = data["input"]
     result_v1 = model_420033_v1.run_model_v1(input)
     return jsonify({'result': result_v1}), 200
+@app.route('/api/model_420033_v1', methods=['POST'])
+def model_420033_v1_input():
+    data = request.get_json()
+    input = data["input"]
+    result = model_420033_v1.run_model_v1(input)
+    return jsonify({'result': result}), 200
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", debug=True, port=5000)

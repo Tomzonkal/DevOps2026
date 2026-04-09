@@ -1,6 +1,7 @@
 # Zadanie 3 - przygotowanie do review
 # W tej sekcji dodajemy nasz nowy model 
 from flask import Flask, request, jsonify
+from Lab_3.model_420033 import model as model_420033
 
 ###########################################
 

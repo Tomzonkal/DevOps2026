@@ -1,4 +1,3 @@
-MIEJSCE NA SPRAWOZDANIE
 # Sprawozdanie – Lab 1
 
 > **Autor:** 422973  
@@ -79,7 +78,7 @@ Nowa gałąź izoluje moje zmiany od kodu innych osób pracujących na tym samym
 git branch
 ```
 
-![Wynik git branch z gwiazdką przy lab_1/new_branch_422973](screenshtos/git_branch.png)
+![Wynik git branch z gwiazdką przy lab_1/new_branch_422973](screenshots/git_branch.png)
 
 ---
 
@@ -168,7 +167,8 @@ git push
 
 Najpierw dodałem konkretne pliki do stagingu, potem stworzyłem commita lokalnie i wypchnąłem go na serwer. Commit zapisuje zmiany tylko lokalnie – `push` synchronizuje je z GitHubem.
 
-![Wynik git commit i git push w terminalu](screenshots/git_commit.png)(screenshots/git_push.png)
+![Wynik git commit](screenshots/git_commit.png)
+![Wynik git push](screenshots/git_push.png)
 
 > Screenshot przedstawia push folderu `screenshots/`. Output dla commita z modelem wyglądałby analogicznie – różni się tylko treść commita i hash.
 
@@ -203,7 +203,7 @@ curl -X POST http://localhost:5000/api/model_422973 \
 {"result": 2.0}
 ```
 
-![Wynik testu](curl.png)
+![Wynik testu](screenshots/curl.png)
 
 ### Wynik pytest
 

@@ -1,5 +1,5 @@
-import pickle
 import os
+import pickle
 
 def run_model_v1(input):
     path = os.path.dirname(__file__)
@@ -9,6 +9,7 @@ def run_model_v1(input):
     result = float(result[0])
     return result
 
+
 def run_model_v2(input):
     path = "./model_401967/model.pkl"
     with open(path, "rb") as f:
@@ -16,6 +17,7 @@ def run_model_v2(input):
         result = model.predict(input)
         result = float(result[0])
     return result
+
 
 def run_model_v3(input):
     path = os.path.dirname(__file__)

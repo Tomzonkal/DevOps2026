@@ -12,7 +12,7 @@ def run_model_v1(input):
 
 
 def run_model_v2(input):
-    path = "./model_0000/model.pkl"
+    path = "./model_401967/model.pkl"
     with open(path, "rb") as f:
         model = pickle.load(f)
         result = model.predict(input)

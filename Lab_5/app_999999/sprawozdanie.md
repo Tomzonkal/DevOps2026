@@ -404,3 +404,164 @@ Kluczowe wnioski:
 2. **Zasada minimalnych uprawnień** — kontenery powinny działać z najniższymi możliwymi uprawnieniami.
 3. **Spięte wersje obrazów** — zawsze używaj konkretnych tagów wersji dla odtwarzalności i przewidywalności.
 4. **Gniazdo Docker to klucz do hosta** — podmontowanie `/var/run/docker.sock` to jeden z najpoważniejszych błędów konfiguracyjnych Docker.
+
+---
+
+## Ocena zadania
+
+### Co było dobrze zaprojektowane w zadaniu
+
+Zadanie jest bardzo dobrze przemyślane pod względem pedagogicznym. Sześć błędów obejmuje
+różne kategorie zagrożeń — od niespójności wersji, przez wycieki sekretów, po eskalację
+uprawnień — co daje szeroki, przekrojowy przegląd tematu bezpieczeństwa kontenerów.
+Podejście "napraw istniejący kod" zamiast "napisz od zera" jest wartościowe, bo uczy
+czytania i audytu cudzej konfiguracji, co jest codzienną pracą inżyniera DevSecOps.
+
+Aplikacja jest na tyle prosta (Flask + PostgreSQL + Nginx), że student nie gubi się
+w logice biznesowej i skupia się wyłącznie na aspektach bezpieczeństwa. Jednocześnie
+jest wystarczająco realistyczna, żeby pokazać rzeczywiste problemy z prawdziwych projektów.
+
+Szczególnie dobrze zaprojektowany jest **błąd 6** (docker.sock): gniazdo Dockera jest
+podmontowane do serwisu `db`, gdzie nie ma absolutnie żadnego uzasadnienia. To zmusza
+studenta do rzeczywistego zastanowienia się nad tym, czego każdy serwis faktycznie
+potrzebuje — zamiast mechanicznego poprawiania zaznaczonych linii.
+
+**GitHub Action** z dwoma jobami (`security-checks` i `build-and-test`) jest rzetelny.
+Nie ogranicza się do sprawdzenia tekstu konfiguracji — faktycznie buduje obrazy,
+uruchamia kontenery i weryfikuje działanie poprawek end-to-end (whoami, warstwy obrazu,
+persystencja danych po restarcie). To szczególnie cenne, bo uczy, że poprawność
+konfiguracji bezpieczeństwa powinna być testowana automatycznie.
+
+---
+
+### Co było trudne lub niejasne
+
+Najbardziej nieoczywiste były **błąd 2 w połączeniu z błędem 3**. Samo usunięcie
+`ENV API_KEY=...` z Dockerfile nie wystarczy — trzeba równocześnie dodać te zmienne
+do sekcji `environment:` w `docker-compose.yml` oraz zadbać o spójność pliku
+`.env` i `.env.example`. Instrukcja mogłaby wyraźniej zaznaczyć, że naprawienie
+błędu 2 wymaga skoordynowanych zmian w dwóch plikach jednocześnie.
+
+Kolejna niejasność dotyczy **kolejności dyrektyw w Dockerfile** przy naprawie błędu 4.
+Dyrektywa `USER appuser` musi być umieszczona po `RUN chmod` i `RUN pip install`,
+ale przed `CMD`. Student musi rozumieć, że zmiana właściciela pliku lub `chmod`
+wykonana po `USER appuser` może się nie powieść, jeśli nieuprzywilejowany użytkownik
+nie ma uprawnień do modyfikacji danego katalogu. Jest to ważny niuans warstw Docker,
+który nie jest wprost wyjaśniony w README — student musi go wydedukować samodzielnie
+lub natknąć się na błąd przy budowaniu.
+
+Ponadto, w README brak jest informacji, że `.env` powinien być w `.gitignore`.
+Zadanie wymaga utworzenia pliku `.env` z prawdziwymi wartościami, ale nie mówi wprost,
+że nie wolno go commitować — student pracujący po raz pierwszy z Docker Compose
+może to przeoczyć.
+
+---
+
+### Co można poprawić w instrukcji lub szablonie
+
+**1. Wskazówka o `.gitignore` dla `.env`**  
+Szablon powinien zawierać gotowy plik `.gitignore` (lub przynajmniej jego fragment)
+z wpisem `.env`. Alternatywnie README powinien zawierać wyraźne ostrzeżenie:
+*"Nie commituj pliku `.env` do repozytorium — dodaj go do `.gitignore`"*.
+
+**2. Sekcja "Jak zweryfikować każdą poprawkę lokalnie"**  
+Przy każdym z 6 błędów warto podać konkretną komendę weryfikacyjną, np.:
+- Błąd 2: `docker history <image> --no-trunc | grep -E "API_KEY|SECRET_KEY"`
+- Błąd 4: `docker compose exec backend whoami`
+- Błąd 6: `docker compose exec db ls /var/run/docker.sock`
+
+Taka sekcja uczy studenta nie tylko jak naprawić problem, ale jak go zweryfikować —
+co jest kluczową umiejętnością inżyniera DevSecOps.
+
+**3. Sugestia dotycząca `.dockerignore`**  
+Szablon nie zawiera pliku `.dockerignore`. W realnych projektach jego brak powoduje
+kopiowanie do kontekstu budowania pliku `.env`, pliku `.git/`, `__pycache__` itd.
+Warto dodać to jako opcjonalne zadanie rozszerzające lub przynajmniej o tym wspomnieć.
+
+**4. Wyraźniejszy opis zależności między błędami 2 i 3**  
+README powinien zawierać akapit wyjaśniający, że "naprawa błędu 2 (ENV w Dockerfile)
+jest ściśle powiązana z naprawą błędu 3 (docker-compose.yml) — oba błędy razem tworzą
+kompletny problem zarządzania sekretami i powinny być naprawiane razem".
+
+**5. Numeracja komentarzy w szablonie `app_0000`**  
+Warto zostawić komentarze `# BLAD N:` przy każdym błędzie w plikach szablonu,
+żeby student miał pewność, ile błędów jest w danym pliku i gdzie dokładnie.
+Aktualnie student musi samodzielnie znaleźć i policzyć błędy bez podpowiedzi
+co do ich lokalizacji.
+
+---
+
+### Czy GitHub Action poprawnie weryfikuje wszystkie poprawki
+
+**Tak** — GitHub Action (`lab_5.yml`) jest starannie napisany i skutecznie weryfikuje
+wszystkie 6 poprawek. Kilka szczegółowych obserwacji:
+
+- **Błąd 1**: sprawdzany zarówno w Dockerfile (regex `FROM ... :latest`), jak
+  i w `docker-compose.yml` (przez parser YAML w Python). Dobrze obsługuje przypadek
+  obrazu bez jakiegokolwiek tagu (np. `image: postgres` bez dwukropka), który traktuje
+  jako równoważny `latest`.
+
+- **Błąd 2**: używa wyrażeń regularnych do wyszukania `ENV API_KEY=` z wartością
+  nie będącą referencją `${...}`. Podejście jest poprawne dla standardowej składni.
+  Nie obsługuje wieloliniowej składni `ENV KEY1=v1 \\\n    KEY2=v2`, ale jest to
+  mało prawdopodobny przypadek w tym ćwiczeniu.
+
+- **Błąd 3**: sprawdza zarówno `POSTGRES_PASSWORD` w sekcji `db`, jak i hasło
+  wbudowane w `DATABASE_URL` backendu za pomocą wyrażenia regularnego na URL
+  `postgresql://user:PASSWORD@host`. Bardzo dokładne i wielowarstwowe podejście.
+
+- **Błąd 4**: weryfikuje obecność `USER` w Dockerfile i jawnie odrzuca `USER root`
+  oraz `USER 0`. Poprawna i skuteczna logika.
+
+- **Błąd 5**: prosty `grep` na `chmod 777` — wystarczający dla tego przypadku.
+
+- **Błąd 6**: `grep -q docker.sock` w pliku `docker-compose.yml` — minimalistyczny,
+  ale skuteczny, bo ciąg `docker.sock` nie pojawi się w poprawnej konfiguracji.
+
+**Jedna potencjalna luka w weryfikacji CI**: workflow nie sprawdza, czy plik `.env`
+nie jest przypadkowo commitowany do repozytorium (brak kroku weryfikującego `.gitignore`).
+Student mógłby "naprawić" błąd 3 przez usunięcie hardkodowanych haseł z docker-compose.yml,
+ale jednocześnie wkomitować plik `.env` z tymi samymi hasłami — CI zatwierdzi PR,
+a bezpieczeństwo i tak będzie naruszone.
+
+---
+
+### Sugestie dla prowadzącego (co dodać/zmienić w Lab 5)
+
+**1. Dodanie błędu 7 — brak `.dockerignore` (opcjonalny)**  
+Brak `.dockerignore` powoduje, że plik `.env` jest kopiowany do kontekstu budowania
+i potencjalnie trafia do warstw obrazu. Byłoby to naturalne rozszerzenie lekcji
+z błędów 2 i 3 — kompletny łańcuch zarządzania sekretami.
+
+**2. Rozszerzenie CI o sprawdzenie `.gitignore`**  
+Dodanie kroku weryfikującego, że `.env` jest w `.gitignore` (lub nie jest w indeksie git):
+```bash
+git check-ignore -q "Lab_5/app_NNNNN/.env" || \
+  (echo "::warning::.env nie jest w .gitignore — sekrety mogą trafić do repozytorium"; exit 0)
+```
+
+**3. Integracja skanera CVE (Trivy lub Grype)**  
+Po zbudowaniu obrazów warto uruchomić `trivy image --severity HIGH,CRITICAL <image>`.
+Studenci zobaczą, że spięte wersje obrazów (błąd 1) bezpośrednio przekładają się
+na liczbę wykrytych CVE — co nadaje temu błędowi mierzalny, konkretny wymiar.
+
+**4. Zadanie "Zanim naprawisz — udokumentuj exploit"**  
+Ciekawe wzbogacenie: przed naprawieniem każdego błędu, student powinien udowodnić,
+że błąd jest exploitowalny. Na przykład:
+- Błąd 2: `docker history <image> --no-trunc | grep SECRET` — dokumentacja wycieku
+- Błąd 4: `docker compose exec backend whoami` → `root` — dokumentacja konta root
+- Błąd 6: `docker compose exec db docker ps` przez podmontowane gniazdo
+
+Takie "najpierw exploit, potem fix" lepiej motywuje i utrwala wiedzę.
+
+**5. Sekcja o Docker Bench for Security**  
+Docker Bench for Security (https://github.com/docker/docker-bench-security) to narzędzie
+automatycznie sprawdzające konfigurację Dockera pod kątem CIS Docker Benchmark.
+Uruchomienie go przed i po naprawkach, ze zrzutem ekranu porównującym wyniki,
+byłoby wartościowym ćwiczeniem pokazującym praktyczne zastosowanie standardów.
+
+**6. Informacja o środowiskach produkcyjnych — Docker Secrets / Vault**  
+Dla zaawansowanych: krótka sekcja o tym, że w produkcji plik `.env` jest
+zastępowany przez Docker Secrets (Swarm), Kubernetes Secrets lub zewnętrzny Vault
+(HashiCorp Vault, AWS Secrets Manager). Daje to studentom perspektywę, co czeka ich
+poza środowiskiem lokalnym.

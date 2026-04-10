@@ -18,5 +18,12 @@ def model_422973_input():
     result_v1 = model_422973.run_model_422973_v2(input)
     return jsonify({'result': result_v1}), 200
 
+@app.route('/api/model_422973_input', methods=['POST'])
+def model_422973_v3_input():
+    data = request.get_json()
+    input = data["input"]
+    result_v1 = model_422973.run_model_422973_v3(input)
+    return jsonify({'result': result_v1}), 200
+
 if __name__ == '__main__':
     app.run(host="0.0.0.0", debug=True, port=5000)

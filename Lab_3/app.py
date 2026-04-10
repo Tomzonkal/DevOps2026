@@ -1,3 +1,4 @@
+# TODO: Brakuje importu dla folderu model_420067
 
 # W tej sekcji dodajemy nasz nowy model 
 from flask import Flask, request, jsonify

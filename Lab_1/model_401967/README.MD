@@ -32,7 +32,7 @@ Wszystkie testy GitHub Actions są zielone, co potwierdza że endpoint `/api/mod
 
 ## Opis komend i efektów
 
-Poniżej opisałem każdą komendę której użyłem podczas laboratorium, w kolejności w jakiej je wykonywałem.
+Poniżej opisałam każdą komendę której użyłam podczas laboratorium, w kolejności w jakiej je wykonywałam.
 
 ---
 

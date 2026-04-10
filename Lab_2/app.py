@@ -15,6 +15,13 @@ def model_v1_input():
 def model_422973_input():
     data = request.get_json()
     input = data["input"]
+    result_v1 = model_422973.run_model_422973_v2(input)
+    return jsonify({'result': result_v1}), 200
+
+@app.route('/api/model_422973_input', methods=['POST'])
+def model_422973_v3_input():
+    data = request.get_json()
+    input = data["input"]
     result_v1 = model_422973.run_model_422973(input)
     return jsonify({'result': result_v1}), 200
 

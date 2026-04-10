@@ -15,4 +15,7 @@ def test_api_models(id):
     response = requests.post(url, json=input_data)
     # Check if the request was successful (status code 200)
     assert response.status_code == 200
-    assert response.json()["result"] == 2.0
+    result = response.json()["result"]
+    assert result[0] == 2.0
+    assert result[1] == 2.0
+    assert result[2] == 2.0

@@ -20,6 +20,15 @@ def model_00000_input():
     result.append(model_0000.run_model_v1(input=input))
     return jsonify({'result': result}), 200
 
+@app.route('/api/model_422364', methods=['POST'])
+def model_422364_input():
+    data = request.get_json()
+    input = data["input"]
+
+    result = []
+    result.append(model_422364.run_model_v1(input=input))
+
+    return jsonify({'result': result}), 200
 #######################################################################
 
 

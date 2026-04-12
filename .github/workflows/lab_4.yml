@@ -1,0 +1,301 @@
+name: lab_4_docker
+
+on:
+  pull_request:
+    branches:
+      - TEST
+      - main
+    paths:
+      - 'Lab_4/app_*/**'
+
+jobs:
+  validate-fixes:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Find student app directory
+        id: find-app
+        run: |
+          app=$(find Lab_4 -maxdepth 1 -type d -name 'app_[0-9]*' ! -name 'app_0000' | sort | head -1)
+          if [ -z "$app" ]; then
+            echo "::error::Nie znaleziono folderu app_NNNNN — utwórz folder z numerem indeksu (np. app_123456)"
+            exit 1
+          fi
+          echo "app=$app" >> $GITHUB_OUTPUT
+          echo "Znaleziono folder studenta: $app"
+
+      - name: Check docker-compose.yml exists
+        run: |
+          file="${{ steps.find-app.outputs.app }}/docker-compose.yml"
+          if [ ! -f "$file" ]; then
+            echo "::error::Brak docker-compose.yml w ${{ steps.find-app.outputs.app }}"
+            exit 1
+          fi
+
+      - name: Validate docker-compose.yml syntax
+        run: |
+          cd "${{ steps.find-app.outputs.app }}"
+          cp .env.example .env 2>/dev/null || true
+          docker compose config > /dev/null
+          echo "OK: Składnia docker-compose.yml jest poprawna"
+
+      - name: Check fix 1 - db and backend in the same network
+        run: |
+          file="${{ steps.find-app.outputs.app }}/docker-compose.yml"
+          echo "--- Sprawdzam BŁĄD 1: wspólna sieć dla db i backend ---"
+
+          # Wyciągamy sieci serwisu db i backend z YML
+          db_networks=$(python3 -c "
+          import yaml, sys
+          with open('$file') as f:
+              c = yaml.safe_load(f)
+          nets = c.get('services', {}).get('db', {}).get('networks', [])
+          if isinstance(nets, dict):
+              nets = list(nets.keys())
+          print(' '.join(nets))
+          ")
+          backend_networks=$(python3 -c "
+          import yaml, sys
+          with open('$file') as f:
+              c = yaml.safe_load(f)
+          nets = c.get('services', {}).get('backend', {}).get('networks', [])
+          if isinstance(nets, dict):
+              nets = list(nets.keys())
+          print(' '.join(nets))
+          ")
+
+          echo "db networks: $db_networks"
+          echo "backend networks: $backend_networks"
+
+          # Sprawdź część wspólną
+          common=$(python3 -c "
+          db = set('$db_networks'.split())
+          be = set('$backend_networks'.split())
+          common = db & be
+          print('yes' if common else 'no')
+          print('Wspólne sieci:', common, file=__import__('sys').stderr)
+          ")
+
+          if [ "$common" = "no" ]; then
+            echo "::error::BŁĄD 1 nie naprawiony: serwisy 'db' i 'backend' nie są w żadnej wspólnej sieci. Backend nie może połączyć się z bazą danych."
+            exit 1
+          fi
+          echo "OK: db i backend są w tej samej sieci"
+
+      - name: Check fix 2 - PostgreSQL volume mountpoint
+        run: |
+          file="${{ steps.find-app.outputs.app }}/docker-compose.yml"
+          echo "--- Sprawdzam BŁĄD 2: mountpoint wolumenu PostgreSQL ---"
+
+          result=$(python3 -c "
+          import yaml
+          with open('$file') as f:
+              c = yaml.safe_load(f)
+          vols = c.get('services', {}).get('db', {}).get('volumes', [])
+          for v in vols:
+              if isinstance(v, str) and 'postgresql' in v:
+                  print(v)
+          ")
+
+          echo "Volume db: $result"
+
+          if echo "$result" | grep -q "postgresql:$\|postgresql$"; then
+            echo "::error::BŁĄD 2 nie naprawiony: zły mountpoint wolumenu. Powinno być '/var/lib/postgresql/data', nie '/var/lib/postgresql'"
+            exit 1
+          fi
+
+          if ! echo "$result" | grep -q "postgresql/data"; then
+            echo "::error::BŁĄD 2 nie naprawiony: wolumen PostgreSQL nie wskazuje na '/var/lib/postgresql/data'"
+            exit 1
+          fi
+
+          echo "OK: Wolumen PostgreSQL ma prawidłowy mountpoint /var/lib/postgresql/data"
+
+      - name: Check fix 3 - DATABASE_URL hostname
+        run: |
+          file="${{ steps.find-app.outputs.app }}/docker-compose.yml"
+          echo "--- Sprawdzam BŁĄD 3: hostname w DATABASE_URL ---"
+
+          db_url=$(python3 -c "
+          import yaml
+          with open('$file') as f:
+              c = yaml.safe_load(f)
+          env = c.get('services', {}).get('backend', {}).get('environment', {})
+          if isinstance(env, list):
+              for e in env:
+                  if 'DATABASE_URL' in e:
+                      print(e)
+                      break
+          elif isinstance(env, dict):
+              print(env.get('DATABASE_URL', ''))
+          ")
+
+          echo "DATABASE_URL: $db_url"
+
+          if echo "$db_url" | grep -q "@database:"; then
+            echo "::error::BŁĄD 3 nie naprawiony: DATABASE_URL wskazuje na '@database:' — serwis nazywa się 'db', nie 'database'"
+            exit 1
+          fi
+
+          if ! echo "$db_url" | grep -qE "@db:|@\$\{.*\}:|^\s*$"; then
+            if ! echo "$db_url" | grep -q "db:5432\|@db:"; then
+              echo "::warning::DATABASE_URL może nie wskazywać na serwis 'db': $db_url"
+            fi
+          fi
+
+          echo "OK: DATABASE_URL wskazuje na prawidłowy hostname"
+
+      - name: Check fix 4 - backend depends_on db
+        run: |
+          file="${{ steps.find-app.outputs.app }}/docker-compose.yml"
+          echo "--- Sprawdzam BŁĄD 4: depends_on dla backend ---"
+
+          result=$(python3 -c "
+          import yaml
+          with open('$file') as f:
+              c = yaml.safe_load(f)
+          deps = c.get('services', {}).get('backend', {}).get('depends_on', None)
+          if deps is None:
+              print('missing')
+          elif isinstance(deps, list):
+              print('list:' + ','.join(deps))
+          elif isinstance(deps, dict):
+              print('dict:' + ','.join(deps.keys()))
+          else:
+              print('unknown')
+          ")
+
+          echo "depends_on: $result"
+
+          if [ "$result" = "missing" ]; then
+            echo "::error::BŁĄD 4 nie naprawiony: backend nie ma 'depends_on' — startuje bez czekania na bazę danych (race condition)"
+            exit 1
+          fi
+
+          if ! echo "$result" | grep -q "db"; then
+            echo "::error::BŁĄD 4 nie naprawiony: backend ma 'depends_on', ale nie zależy od 'db'"
+            exit 1
+          fi
+
+          echo "OK: backend ma depends_on: db"
+
+      - name: Check report exists
+        run: |
+          app="${{ steps.find-app.outputs.app }}"
+          echo "--- Sprawdzam sprawozdanie ---"
+          if find "$app" -maxdepth 1 -name "*.md" ! -name "README.md" | grep -q .; then
+            report=$(find "$app" -maxdepth 1 -name "*.md" ! -name "README.md" | head -1)
+            echo "OK: Znaleziono sprawozdanie: $report"
+          else
+            echo "::warning::Nie znaleziono pliku sprawozdania (*.md) w $app"
+          fi
+
+      - name: Summary
+        run: |
+          echo "========================================"
+          echo "Wszystkie 4 błędy zostały naprawione!"
+          echo "Folder studenta: ${{ steps.find-app.outputs.app }}"
+          echo "========================================"
+
+  build-and-test:
+    needs: validate-fixes
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Find student app directory
+        id: find-app
+        run: |
+          app=$(find Lab_4 -maxdepth 1 -type d -name 'app_[0-9]*' ! -name 'app_0000' | sort | head -1)
+          echo "app=$app" >> $GITHUB_OUTPUT
+
+      - name: Prepare .env
+        run: |
+          cd "${{ steps.find-app.outputs.app }}"
+          cp .env.example .env
+
+      - name: Build containers
+        run: |
+          cd "${{ steps.find-app.outputs.app }}"
+          docker compose up --build -d
+          echo "Kontenery uruchomione"
+
+      - name: Wait for backend to be ready
+        run: |
+          echo "Czekam na backend..."
+          for i in {1..30}; do
+            if curl -fsS http://localhost:5000/health > /dev/null 2>&1; then
+              echo "Backend gotowy po $i sekundach"
+              break
+            fi
+            if [ $i -eq 30 ]; then
+              echo "::error::Backend nie odpowiedział w ciągu 30 sekund"
+              cd "${{ steps.find-app.outputs.app }}" && docker compose logs
+              exit 1
+            fi
+            sleep 1
+          done
+
+      - name: Test /health endpoint
+        run: |
+          response=$(curl -fsS http://localhost:5000/health)
+          echo "GET /health: $response"
+          if ! echo "$response" | python3 -c "import sys,json; d=json.load(sys.stdin); assert d.get('status')=='ok'"; then
+            echo "::error::GET /health nie zwrócił {\"status\": \"ok\"}"
+            exit 1
+          fi
+          echo "OK: /health zwraca {\"status\": \"ok\"}"
+
+      - name: Test /items endpoint
+        run: |
+          response=$(curl -fsS http://localhost:5000/items)
+          echo "GET /items: $response"
+          if ! echo "$response" | python3 -c "import sys,json; json.load(sys.stdin)"; then
+            echo "::error::GET /items nie zwrócił JSON"
+            exit 1
+          fi
+          echo "OK: /items zwraca JSON"
+
+      - name: Test POST /items
+        run: |
+          response=$(curl -fsS -X POST http://localhost:5000/items \
+            -H "Content-Type: application/json" \
+            -d '{"name": "test CI"}')
+          echo "POST /items: $response"
+          if ! echo "$response" | python3 -c "import sys,json; d=json.load(sys.stdin); assert 'id' in d"; then
+            echo "::error::POST /items nie zwrócił obiektu z 'id'"
+            exit 1
+          fi
+          echo "OK: POST /items tworzy element"
+
+      - name: Test data persistence
+        run: |
+          cd "${{ steps.find-app.outputs.app }}"
+          echo "Restartuję kontenery..."
+          docker compose down
+          docker compose up -d
+
+          echo "Czekam na backend po restarcie..."
+          for i in {1..30}; do
+            if curl -fsS http://localhost:5000/health > /dev/null 2>&1; then break; fi
+            sleep 1
+          done
+
+          items=$(curl -fsS http://localhost:5000/items)
+          echo "GET /items po restarcie: $items"
+          count=$(echo "$items" | python3 -c "import sys,json; print(len(json.load(sys.stdin)))")
+          if [ "$count" -lt 1 ]; then
+            echo "::error::Persystencja danych nie działa — lista jest pusta po restarcie"
+            exit 1
+          fi
+          echo "OK: Dane przetrwały restart ($count elementów)"
+
+      - name: Cleanup
+        if: always()
+        run: |
+          cd "${{ steps.find-app.outputs.app }}" && docker compose down -v || true

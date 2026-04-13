@@ -19,6 +19,11 @@ Czwarte zajęcia z przedmiotu DevOps poświęcone były zapoznaniu się z podsta
 ---
  
 ## 2. Przygotowanie środowiska i aktualizacja repo
+
+Pobrałem dockera
+
+
+![Pobrałem dockera itp](1.png)
  
 Pracę rozpocząłem od aktualizacji lokalnego repozytorium:
  
@@ -63,6 +68,11 @@ Uruchomiłem aplikację komendą:
 ```bash
 docker compose up --build
 ```
+
+Fragment z compose up
+
+
+![Fragment z compose up](2.png)
  
 Po uruchomieniu sprawdziłem stan serwisów w osobnym terminalu:
  
@@ -70,13 +80,8 @@ Po uruchomieniu sprawdziłem stan serwisów w osobnym terminalu:
 docker compose ps
 ```
  
-Wynik pokazał że kontener `backend` nie pojawił się na liście — tylko `db` i `frontend` działały poprawnie:
- 
-```
-NAME                    IMAGE                 COMMAND     SERVICE    STATUS
-app_422385-db-1         postgres:15           ...         db         Up (healthy)
-app_422385-frontend-1   app_422385-frontend   ...         frontend   Up
-```
+Wynik pokazał że kontener `backend` nie pojawił się na liście - tylko `db` i `frontend` działały poprawnie:
+
  
 Sprawdziłem logi backendu:
  
@@ -84,16 +89,12 @@ Sprawdziłem logi backendu:
 docker compose logs backend
 ```
  
-Logi wskazały na problem z połączeniem z bazą danych:
- 
-```
-backend-1  | [INFO]  Connecting to database...
-backend-1  | [INFO]  Database not ready, retrying (1/10)...
-backend-1  | [INFO]  Database not ready, retrying (2/10)...
-...
-backend-1  | [INFO]  Database not ready, retrying (10/10)...
-backend-1  | Error: Could not connect to database after 10 attempts
-```
+Logi wskazały na problem z połączeniem z bazą danych.
+
+Wynik compose ps oraz logi z backendu
+
+
+![Wynik compose ps oraz logi z backendu](3.png)
  
 ---
  
@@ -216,23 +217,32 @@ Po naprawieniu wszystkich błędów ponownie uruchomiłem aplikację:
 docker compose down -v
 docker compose up --build
 ```
+
+Fragmenty
+
+
+![Fragmenty](4.png)
  
 Weryfikacja endpointów:
+
+Weryfikacja pierwszego endpointa
+
+
+![Weryfikacja pierwszego endpointa](5.png)
+
+
+Weryfikacja drugiego endpointa
+
+
+![Weryfikacja drugiego endpointa](6.png)
  
-```bash
-$ curl http://localhost:5000/health
-{"status":"ok"}
- 
-$ curl http://localhost:80
-<!DOCTYPE html>
-<html lang="pl">
-...
-</html>
- 
-$ curl http://localhost:5000/items
-[]
-```
- 
+
+Weryfikacja trzeciego endpointa
+
+
+![Weryfikacja trzeciego endpointa](7.png)
+
+
 Wszystkie trzy endpointy odpowiadały poprawnie.
  
 ---
@@ -248,25 +258,33 @@ $ curl -X POST http://localhost:5000/items \
  
 {"created_at":"2026-04-13 18:25:43.184673","id":1,"name":"element testowy"}
 ```
+Uszkodzony screen jak to robiłem (nie wiem co się stało)
+
+
+![Uszkodzony screen](9.png)
  
 **Weryfikacja pojawienia się elementu na liście:**
  
 ```bash
 $ curl http://localhost:5000/items
-[{"created_at":"2026-04-13 18:25:43.184673","id":1,"name":"element testowy"}]
 ```
+
+Weryfikacja
+
+
+![Weryfikacja](8.png)
  
-**Restart aplikacji i sprawdzenie persystencji:**
+**Restart aplikacji i sprawdzenie:**
  
 ```bash
 docker compose down
 docker compose up
 ```
- 
-```bash
-$ curl http://localhost:5000/items
-[{"created_at":"2026-04-13 18:25:43.184673","id":1,"name":"element testowy"}]
-```
+Weryfikacja po restarcie
+
+
+![Weryfikacja po restarcie](10.png)
+
  
 Dane przetrwały restart - wolumen działa poprawnie.
  
@@ -276,13 +294,17 @@ Dane przetrwały restart - wolumen działa poprawnie.
 docker compose down -v
 docker compose up
 ```
+Usuniecie wolumenu
+
+
+![Usuniecie wolumenu](11.png)
  
-```bash
-$ curl http://localhost:5000/items
-[]
-```
+Baza danych pusta
+
+
+![Baza danych pusta](12.png)
  
-Po usunięciu wolumenu baza danych jest pusta - potwierdzenie poprawnego działania persystencji.
+Po usunięciu wolumenu baza danych jest pusta - potwierdzenie poprawnego działania.
  
 ---
  

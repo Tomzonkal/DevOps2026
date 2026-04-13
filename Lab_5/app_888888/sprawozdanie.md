@@ -333,3 +333,4 @@ W odróżnieniu od zmiennych środowiskowych (które są widoczne w `docker insp
 - są przesyłane do węzłów szyfrowanym kanałem TLS
 
 W środowiskach bez Swarm alternatywą jest HashiCorp Vault lub Kubernetes Secrets.
+

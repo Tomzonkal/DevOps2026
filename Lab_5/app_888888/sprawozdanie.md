@@ -334,3 +334,4 @@ W odróżnieniu od zmiennych środowiskowych (które są widoczne w `docker insp
 
 W środowiskach bez Swarm alternatywą jest HashiCorp Vault lub Kubernetes Secrets.
 
+

@@ -1,8 +1,8 @@
+import json
+import math
 import os
 import sys
-import json
 from datetime import datetime
-import math
 
 
 # Zle sformatowana funkcja - brakuje spacji, zla ilosc pustych linii

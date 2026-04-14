@@ -1,5 +1,6 @@
-import pickle 
-import os 
+import os
+import pickle
+
 
 def run_model_0000(input):
     #Wczytywanie modelu z pliku

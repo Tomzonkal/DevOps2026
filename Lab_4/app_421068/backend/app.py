@@ -32,13 +32,15 @@ def init_db():
         try:
             conn = get_connection()
             cur = conn.cursor()
-            cur.execute("""
+            cur.execute(
+                """
                 CREATE TABLE IF NOT EXISTS items (
                     id SERIAL PRIMARY KEY,
                     name TEXT NOT NULL,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
-            """)
+            """
+            )
             conn.commit()
             cur.close()
             conn.close()

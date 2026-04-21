@@ -9,7 +9,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql
     networks:
-      - db_network
+      - app_network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
@@ -37,8 +37,7 @@ services:
 networks:
   app_network:
     driver: bridge
-  db_network:
-    driver: bridge
+  
 
 volumes:
   postgres_data:

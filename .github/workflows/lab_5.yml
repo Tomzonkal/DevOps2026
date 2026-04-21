@@ -70,7 +70,7 @@ jobs:
           fi
 
           [ $failed -eq 0 ] && echo "OK: Wszystkie obrazy bazowe maja spięte wersje"
-          [ $failed -ne 0 ] && exit 1
+          if [ $failed -ne 0 ]; then exit 1; fi
 
       - name: Check fix 2 - no hardcoded secrets in Dockerfile ENV
         run: |

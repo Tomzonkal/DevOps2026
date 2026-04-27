@@ -15,7 +15,7 @@ def add():
         return jsonify({"error": "Brak danych JSON"}), 400
 
     a = data.get("a")
-    b = data.get("b")
+    b = data.get("b" )
 
     if a is None or b is None:
         return jsonify({"error": "Wymagane pola: a, b"}), 400

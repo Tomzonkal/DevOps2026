@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DevOps2026 - Lab 5</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; }
+        h1 { color: #333; }
+        .status { padding: 10px; border-radius: 4px; margin: 10px 0; }
+        .ok { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        input { padding: 8px; width: 300px; margin-right: 8px; }
+        button { padding: 8px 16px; cursor: pointer; }
+        ul { list-style: none; padding: 0; }
+        li { padding: 6px; border-bottom: 1px solid #eee; }
+    </style>
+</head>
+<body>
+    <h1>DevOps2026 - Lab 5 Docker Security</h1>
+
+    <h2>Status backendu</h2>
+    <div id="health-status">Sprawdzam...</div>
+
+    <h2>Lista elementów</h2>
+    <ul id="items-list"></ul>
+
+    <h2>Dodaj element</h2>
+    <input type="text" id="item-name" placeholder="Nazwa elementu">
+    <button onclick="addItem()">Dodaj</button>
+
+    <script>
+        const API = '/api';
+
+        async function checkHealth() {
+            const el = document.getElementById('health-status');
+            try {
+                const res = await fetch(`${API}/health`);
+                const data = await res.json();
+                el.className = 'status ok';
+                el.textContent = `Backend: ${data.status}`;
+            } catch (e) {
+                el.className = 'status error';
+                el.textContent = `Backend niedostępny: ${e.message}`;
+            }
+        }
+
+        async function loadItems() {
+            const ul = document.getElementById('items-list');
+            try {
+                const res = await fetch(`${API}/items`);
+                const items = await res.json();
+                ul.innerHTML = items.length
+                    ? items.map(i => `<li>#${i.id} — ${i.name} (${i.created_at})</li>`).join('')
+                    : '<li>Brak elementów.</li>';
+            } catch (e) {
+                ul.innerHTML = `<li class="status error">Błąd: ${e.message}</li>`;
+            }
+        }
+
+        async function addItem() {
+            const input = document.getElementById('item-name');
+            const name = input.value.trim();
+            if (!name) return;
+            try {
+                const res = await fetch(`${API}/items`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name })
+                });
+                if (res.ok) {
+                    input.value = '';
+                    loadItems();
+                }
+            } catch (e) {
+                alert(`Błąd: ${e.message}`);
+            }
+        }
+
+        checkHealth();
+        loadItems();
+    </script>
+</body>
+</html>

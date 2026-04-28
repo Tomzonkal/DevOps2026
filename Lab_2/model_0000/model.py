@@ -1,5 +1,5 @@
-import pickle 
-import os 
+import os
+import pickle
 
 ###### Pierwsze rozwiązanie ###########
 

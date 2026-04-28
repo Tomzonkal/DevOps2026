@@ -1,6 +1,7 @@
 import config
 import pytest
 import requests
+
 the_list = config.id_list
 @pytest.mark.parametrize("id", the_list)
 def test_api_models(id):

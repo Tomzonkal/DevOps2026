@@ -1,0 +1,334 @@
+name: lab_5_docker_security
+
+on:
+  pull_request:
+    branches:
+      - TEST
+      - main
+    paths:
+      - 'Lab_5/app_*/**'
+
+jobs:
+  security-checks:
+    name: Sprawdzenie poprawek bezpieczenstwa
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Find student app directory
+        id: find-app
+        run: |
+          app=$(find Lab_5 -maxdepth 1 -type d -name 'app_[0-9]*' ! -name 'app_0000' | sort | head -1)
+          if [ -z "$app" ]; then
+            echo "::error::Nie znaleziono folderu app_NNNNN — utwórz folder z numerem indeksu (np. app_123456)"
+            exit 1
+          fi
+          echo "app=$app" >> $GITHUB_OUTPUT
+          echo "Znaleziono folder studenta: $app"
+
+      - name: Validate docker-compose.yml syntax
+        run: |
+          cd "${{ steps.find-app.outputs.app }}"
+          cp .env.example .env 2>/dev/null || true
+          docker compose config > /dev/null
+          echo "OK: Skladnia docker-compose.yml jest poprawna"
+
+      - name: Check fix 1 - no 'latest' tags in base images
+        run: |
+          echo "--- Sprawdzam BLAD 1: niespięte wersje obrazów bazowych ---"
+          backend_df="${{ steps.find-app.outputs.app }}/backend/Dockerfile"
+          frontend_df="${{ steps.find-app.outputs.app }}/frontend/Dockerfile"
+          compose="${{ steps.find-app.outputs.app }}/docker-compose.yml"
+          failed=0
+
+          if grep -qE "^FROM\s+\S+:latest" "$backend_df"; then
+            echo "::error::BLAD 1 nie naprawiony: backend/Dockerfile używa tagu 'latest' w FROM"
+            failed=1
+          fi
+
+          if grep -qE "^FROM\s+\S+:latest" "$frontend_df"; then
+            echo "::error::BLAD 1 nie naprawiony: frontend/Dockerfile używa tagu 'latest' w FROM"
+            failed=1
+          fi
+
+          if python3 -c "
+          import yaml, sys
+          with open('$compose') as f:
+              c = yaml.safe_load(f)
+          for name, svc in c.get('services', {}).items():
+              img = svc.get('image', '')
+              if img.endswith(':latest') or (img and ':' not in img):
+                  print(f'Serwis {name} używa niespietej wersji: {img}', file=sys.stderr)
+                  sys.exit(1)
+          "; then
+            echo "OK: docker-compose.yml — wszystkie obrazy maja spięte wersje"
+          else
+            echo "::error::BLAD 1 nie naprawiony: docker-compose.yml zawiera obraz z tagiem 'latest' lub bez tagu"
+            failed=1
+          fi
+
+          [ $failed -eq 0 ] && echo "OK: Wszystkie obrazy bazowe maja spięte wersje"
+          [ $failed -ne 0 ] && exit 1
+
+      - name: Check fix 2 - no hardcoded secrets in Dockerfile ENV
+        run: |
+          echo "--- Sprawdzam BLAD 2: hardkodowane sekrety w Dockerfile ---"
+          backend_df="${{ steps.find-app.outputs.app }}/backend/Dockerfile"
+
+          result=$(python3 -c "
+          import re, sys
+          with open('$backend_df') as f:
+              content = f.read()
+          failed = False
+          for var in ['API_KEY', 'SECRET_KEY']:
+              # Match: ENV VAR=value  where value is not empty and not a variable reference \${...}
+              pattern = rf'^ENV\s+{var}=(.+)$'
+              matches = re.findall(pattern, content, re.MULTILINE)
+              for match in matches:
+                  value = match.strip().strip('\"\'')
+                  if value and not value.startswith('\${'):
+                      print(f'FAIL: {var} ma hardkodowaną wartość w Dockerfile ENV')
+                      failed = True
+          sys.exit(1 if failed else 0)
+          ")
+
+          if [ $? -ne 0 ]; then
+            echo "::error::BLAD 2 nie naprawiony: backend/Dockerfile zawiera hardkodowane sekrety w dyrektywach ENV (API_KEY lub SECRET_KEY)"
+            echo "Sekrety w ENV są zapisywane w warstwach obrazu i widoczne przez 'docker history'"
+            exit 1
+          fi
+          echo "OK: Brak hardkodowanych sekretów w ENV w Dockerfile"
+
+      - name: Check fix 3 - no hardcoded passwords in docker-compose.yml
+        run: |
+          echo "--- Sprawdzam BLAD 3: hardkodowane haslo w docker-compose.yml ---"
+          compose="${{ steps.find-app.outputs.app }}/docker-compose.yml"
+
+          python3 -c "
+          import yaml, re, sys
+          with open('$compose') as f:
+              content = f.read()
+              f.seek(0)
+              c = yaml.safe_load(f)
+
+          failed = False
+
+          # Check POSTGRES_PASSWORD in db service environment
+          db_env = c.get('services', {}).get('db', {}).get('environment', {})
+          if isinstance(db_env, list):
+              for item in db_env:
+                  if item.startswith('POSTGRES_PASSWORD='):
+                      val = item.split('=', 1)[1].strip().strip('\"\'')
+                      if val and not val.startswith('\${'):
+                          print(f'FAIL: POSTGRES_PASSWORD ma hardkodowana wartość: {val}')
+                          failed = True
+          elif isinstance(db_env, dict):
+              val = str(db_env.get('POSTGRES_PASSWORD', ''))
+              if val and not val.startswith('\${'):
+                  print(f'FAIL: POSTGRES_PASSWORD ma hardkodowana wartość: {val}')
+                  failed = True
+
+          # Check DATABASE_URL in backend service environment
+          backend_env = c.get('services', {}).get('backend', {}).get('environment', {})
+          db_url = ''
+          if isinstance(backend_env, list):
+              for item in backend_env:
+                  if item.startswith('DATABASE_URL='):
+                      db_url = item.split('=', 1)[1]
+          elif isinstance(backend_env, dict):
+              db_url = str(backend_env.get('DATABASE_URL', ''))
+
+          # DATABASE_URL should not contain a literal password (no variable reference for the password part)
+          # Pattern: postgresql://user:PASSWORD@host — if password part has no \${ it's hardcoded
+          url_match = re.search(r'postgresql://[^:]+:([^@]+)@', db_url)
+          if url_match:
+              pwd_part = url_match.group(1)
+              if pwd_part and not pwd_part.startswith('\${'):
+                  print(f'FAIL: DATABASE_URL zawiera hardkodowane haslo: ...:{pwd_part}@...')
+                  failed = True
+
+          sys.exit(1 if failed else 0)
+          "
+
+          if [ $? -ne 0 ]; then
+            echo "::error::BLAD 3 nie naprawiony: docker-compose.yml zawiera hardkodowane haslo. Użyj zmiennych \${POSTGRES_PASSWORD} z pliku .env"
+            exit 1
+          fi
+          echo "OK: docker-compose.yml używa zmiennych środowiskowych dla haseł"
+
+      - name: Check fix 4 - non-root USER in backend Dockerfile
+        run: |
+          echo "--- Sprawdzam BLAD 4: kontener uruchomiony jako root ---"
+          backend_df="${{ steps.find-app.outputs.app }}/backend/Dockerfile"
+
+          if ! grep -qE "^USER\s+\S+" "$backend_df"; then
+            echo "::error::BLAD 4 nie naprawiony: backend/Dockerfile nie ma dyrektywy USER — kontener działa jako root"
+            exit 1
+          fi
+
+          # Check USER is not root
+          user_line=$(grep -E "^USER\s+" "$backend_df" | tail -1)
+          user_val=$(echo "$user_line" | awk '{print $2}')
+          if [ "$user_val" = "root" ] || [ "$user_val" = "0" ]; then
+            echo "::error::BLAD 4 nie naprawiony: USER ustawiony na root — użyj nieuprzywilejowanego użytkownika"
+            exit 1
+          fi
+
+          echo "OK: backend Dockerfile ma dyrektywę USER ($user_val) — kontener nie działa jako root"
+
+      - name: Check .env not committed to repository
+        run: |
+          echo "--- Sprawdzam czy plik .env nie jest w repozytorium ---"
+          app="${{ steps.find-app.outputs.app }}"
+
+          # git ls-files shows files tracked by git — .env must NOT appear
+          if git ls-files --error-unmatch "${app}/.env" > /dev/null 2>&1; then
+            echo "::error::Plik .env jest zacommitowany do repozytorium!"
+            echo "::error::Plik .env zawiera hasła i sekrety — NIE powinien trafiać do git."
+            echo "::error::Dodaj '.env' do pliku .gitignore i usuń go z historii: git rm --cached ${app}/.env"
+            exit 1
+          fi
+          echo "OK: Plik .env nie jest śledzony przez git"
+
+      - name: Check report exists
+        run: |
+          app="${{ steps.find-app.outputs.app }}"
+          echo "--- Sprawdzam sprawozdanie ---"
+          if find "$app" -maxdepth 1 -name "*.md" ! -name "README.md" | grep -q .; then
+            report=$(find "$app" -maxdepth 1 -name "*.md" ! -name "README.md" | head -1)
+            echo "OK: Znaleziono sprawozdanie: $report"
+          else
+            echo "::warning::Nie znaleziono pliku sprawozdania (*.md) w $app"
+          fi
+
+      - name: Security summary
+        run: |
+          echo "========================================"
+          echo "Wszystkie 4 problemy bezpieczeństwa zostały naprawione!"
+          echo "Folder studenta: ${{ steps.find-app.outputs.app }}"
+          echo "========================================"
+
+  build-and-test:
+    name: Budowanie i testy funkcjonalne
+    needs: security-checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Find student app directory
+        id: find-app
+        run: |
+          app=$(find Lab_5 -maxdepth 1 -type d -name 'app_[0-9]*' ! -name 'app_0000' | sort | head -1)
+          echo "app=$app" >> $GITHUB_OUTPUT
+
+      - name: Prepare .env
+        run: |
+          cd "${{ steps.find-app.outputs.app }}"
+          cp .env.example .env
+
+      - name: Build containers
+        run: |
+          cd "${{ steps.find-app.outputs.app }}"
+          docker compose up --build -d
+          echo "Kontenery uruchomione"
+
+      - name: Wait for backend to be ready
+        run: |
+          echo "Czekam na backend..."
+          for i in {1..60}; do
+            if curl -fsS http://localhost:5000/health > /dev/null 2>&1; then
+              echo "Backend gotowy po $i sekundach"
+              break
+            fi
+            if [ $i -eq 60 ]; then
+              echo "::error::Backend nie odpowiedział w ciągu 60 sekund"
+              cd "${{ steps.find-app.outputs.app }}" && docker compose logs
+              exit 1
+            fi
+            sleep 1
+          done
+
+      - name: Test /health endpoint
+        run: |
+          response=$(curl -fsS http://localhost:5000/health)
+          echo "GET /health: $response"
+          if ! echo "$response" | python3 -c "import sys,json; d=json.load(sys.stdin); assert d.get('status')=='ok'"; then
+            echo "::error::GET /health nie zwrócił {\"status\": \"ok\"}"
+            exit 1
+          fi
+          echo "OK: /health zwraca {\"status\": \"ok\"}"
+
+      - name: Test /items endpoint
+        run: |
+          response=$(curl -fsS http://localhost:5000/items)
+          echo "GET /items: $response"
+          if ! echo "$response" | python3 -c "import sys,json; json.load(sys.stdin)"; then
+            echo "::error::GET /items nie zwrócił JSON"
+            exit 1
+          fi
+          echo "OK: /items zwraca JSON"
+
+      - name: Test POST /items
+        run: |
+          response=$(curl -fsS -X POST http://localhost:5000/items \
+            -H "Content-Type: application/json" \
+            -d '{"name": "test CI security"}')
+          echo "POST /items: $response"
+          if ! echo "$response" | python3 -c "import sys,json; d=json.load(sys.stdin); assert 'id' in d"; then
+            echo "::error::POST /items nie zwrócił obiektu z 'id'"
+            exit 1
+          fi
+          echo "OK: POST /items tworzy element"
+
+      - name: Verify container runs as non-root
+        run: |
+          whoami_result=$(docker compose -f "${{ steps.find-app.outputs.app }}/docker-compose.yml" exec -T backend whoami)
+          echo "whoami w kontenerze backend: $whoami_result"
+          if [ "$whoami_result" = "root" ]; then
+            echo "::error::Kontener backend działa jako root — dodaj dyrektywę USER w Dockerfile"
+            exit 1
+          fi
+          echo "OK: Kontener backend działa jako '$whoami_result' (nie root)"
+
+      - name: Verify secrets not in image layers
+        run: |
+          echo "Sprawdzam warstwy obrazu backendu..."
+          image=$(docker compose -f "${{ steps.find-app.outputs.app }}/docker-compose.yml" images -q backend)
+          history=$(docker history "$image" --no-trunc 2>/dev/null || true)
+          if echo "$history" | grep -qE "API_KEY=\S|SECRET_KEY=\S"; then
+            echo "::error::Sekrety (API_KEY lub SECRET_KEY) są widoczne w historii warstw obrazu!"
+            echo "Usuń dyrektywy ENV z Dockerfile i przekaż sekrety przez docker-compose environment"
+            exit 1
+          fi
+          echo "OK: Brak sekretów w historii warstw obrazu"
+
+      - name: Test data persistence
+        run: |
+          cd "${{ steps.find-app.outputs.app }}"
+          echo "Restartuję kontenery..."
+          docker compose down
+          docker compose up -d
+
+          echo "Czekam na backend po restarcie..."
+          for i in {1..60}; do
+            if curl -fsS http://localhost:5000/health > /dev/null 2>&1; then break; fi
+            sleep 1
+          done
+
+          items=$(curl -fsS http://localhost:5000/items)
+          echo "GET /items po restarcie: $items"
+          count=$(echo "$items" | python3 -c "import sys,json; print(len(json.load(sys.stdin)))")
+          if [ "$count" -lt 1 ]; then
+            echo "::error::Persystencja danych nie działa — lista jest pusta po restarcie"
+            exit 1
+          fi
+          echo "OK: Dane przetrwały restart ($count elementów)"
+
+      - name: Cleanup
+        if: always()
+        run: |
+          cd "${{ steps.find-app.outputs.app }}" && docker compose down -v || true

@@ -19,6 +19,11 @@ jobs:
         run: |
           cd Lab_7/app_420132
           pip install -r requirements.txt
+      - name: Start application
+        run: |
+          cd Lab_7/app_420132
+          python calculator.py &
+          sleep 3
       - name: Run tests
         run: |
           cd Lab_7/app_420132

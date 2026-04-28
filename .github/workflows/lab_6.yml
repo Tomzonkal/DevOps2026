@@ -1,0 +1,286 @@
+name: lab_6_docker_optimization
+
+on:
+  pull_request:
+    branches:
+      - TEST
+      - main
+    paths:
+      - 'Lab_6/app_*/**'
+
+jobs:
+  static-checks:
+    name: Sprawdzenie struktury Dockerfile
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Find student app directory
+        id: find-app
+        run: |
+          app=$(find Lab_6 -maxdepth 1 -type d -name 'app_[0-9]*' ! -name 'app_0000' | sort | head -1)
+          if [ -z "$app" ]; then
+            echo "::error::Nie znaleziono folderu app_NNNNN — utwórz folder z numerem indeksu (np. app_123456)"
+            exit 1
+          fi
+          echo "app=$app" >> $GITHUB_OUTPUT
+          echo "Znaleziono folder studenta: $app"
+
+      - name: Check Dockerfile exists
+        run: |
+          if [ ! -f "${{ steps.find-app.outputs.app }}/Dockerfile" ]; then
+            echo "::error::Brak pliku Dockerfile w ${{ steps.find-app.outputs.app }}"
+            exit 1
+          fi
+          echo "OK: Dockerfile istnieje"
+
+      - name: Check .dockerignore exists
+        run: |
+          if [ ! -f "${{ steps.find-app.outputs.app }}/.dockerignore" ]; then
+            echo "::error::Brak pliku .dockerignore w ${{ steps.find-app.outputs.app }} — dodaj go zgodnie z krokiem 6 instrukcji"
+            exit 1
+          fi
+          echo "OK: .dockerignore istnieje"
+
+      - name: Check multi-stage build
+        run: |
+          dockerfile="${{ steps.find-app.outputs.app }}/Dockerfile"
+          from_count=$(grep -cE "^FROM\s+" "$dockerfile" || true)
+          if [ "$from_count" -lt 2 ]; then
+            echo "::error::Dockerfile nie używa multi-stage build — wymagane są co najmniej dwa bloki FROM (np. FROM ... AS builder i FROM ...)"
+            exit 1
+          fi
+          if ! grep -qE "^FROM\s+\S+\s+AS\s+\S+" "$dockerfile"; then
+            echo "::error::Dockerfile nie używa nazwanego stage'a (AS builder) — dodaj alias do pierwszego FROM zgodnie z krokiem 8"
+            exit 1
+          fi
+          echo "OK: Dockerfile używa multi-stage build ($from_count bloków FROM)"
+
+      - name: Check base image is not full python:3.11
+        run: |
+          dockerfile="${{ steps.find-app.outputs.app }}/Dockerfile"
+          last_from=$(grep -E "^FROM\s+" "$dockerfile" | tail -1)
+          if echo "$last_from" | grep -qE "FROM python:3\.1[0-9]$|FROM python:3\.[0-9]+$"; then
+            echo "::error::Finalny stage używa pełnego obrazu python bez sufiksu slim/alpine — zmień na python:3.11-slim lub python:3.11-alpine"
+            exit 1
+          fi
+          echo "OK: Finalny stage używa zoptymalizowanego obrazu bazowego"
+          echo "Ostatnie FROM: $last_from"
+
+      - name: Check requirements before app code in final stage
+        run: |
+          dockerfile="${{ steps.find-app.outputs.app }}/Dockerfile"
+          python3 - <<'EOF'
+          import sys
+
+          with open("${{ steps.find-app.outputs.app }}/Dockerfile") as f:
+              lines = f.readlines()
+
+          # Find the last FROM block (final stage)
+          last_from_idx = max(
+              i for i, line in enumerate(lines)
+              if line.strip().upper().startswith("FROM")
+          )
+
+          final_stage = lines[last_from_idx:]
+
+          req_idx = next(
+              (i for i, l in enumerate(final_stage) if "requirements" in l.lower() and "copy" in l.upper()),
+              None,
+          )
+          app_copy_idx = next(
+              (i for i, l in enumerate(final_stage) if "COPY" in l.upper() and "app.py" in l),
+              None,
+          )
+
+          if req_idx is None and app_copy_idx is None:
+              print("OK: Finalny stage kopiuje zależności z builder stage (COPY --from)")
+              sys.exit(0)
+
+          if req_idx is not None and app_copy_idx is not None and req_idx > app_copy_idx:
+              print("::error::W finalnym stage COPY app.py stoi przed COPY requirements — napraw kolejność warstw (krok 5)")
+              sys.exit(1)
+
+          print("OK: Kolejność warstw jest poprawna")
+          EOF
+
+      - name: Check requirements-dev.txt not installed in final stage
+        run: |
+          dockerfile="${{ steps.find-app.outputs.app }}/Dockerfile"
+          python3 - <<'EOF'
+          import sys
+
+          with open("${{ steps.find-app.outputs.app }}/Dockerfile") as f:
+              lines = f.readlines()
+
+          last_from_idx = max(
+              i for i, line in enumerate(lines)
+              if line.strip().upper().startswith("FROM")
+          )
+          final_stage = "".join(lines[last_from_idx:])
+
+          if "requirements-dev" in final_stage:
+              print("::error::Finalny stage instaluje requirements-dev.txt — zależności developerskie nie powinny trafiać do obrazu produkcyjnego (krok 8)")
+              sys.exit(1)
+
+          print("OK: Finalny stage nie instaluje requirements-dev.txt")
+          EOF
+
+  build-and-test:
+    name: Budowanie i testy funkcjonalne
+    needs: static-checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Find student app directory
+        id: find-app
+        run: |
+          app=$(find Lab_6 -maxdepth 1 -type d -name 'app_[0-9]*' ! -name 'app_0000' | sort | head -1)
+          echo "app=$app" >> $GITHUB_OUTPUT
+
+      - name: Build Docker image
+        run: |
+          docker build -t kalkulator-student "${{ steps.find-app.outputs.app }}"
+          echo "OK: Obraz zbudowany pomyślnie"
+
+      - name: Check image size (max 200 MB)
+        run: |
+          size=$(docker image inspect kalkulator-student --format='{{.Size}}')
+          size_mb=$(echo "$size" | awk '{printf "%.0f", $1/1024/1024}')
+          echo "Rozmiar obrazu: ${size_mb} MB"
+          if [ "$size_mb" -gt 200 ]; then
+            echo "::error::Obraz waży ${size_mb} MB — przekracza limit 200 MB. Zoptymalizuj Dockerfile (multi-stage build + slim image)."
+            exit 1
+          fi
+          echo "OK: Rozmiar obrazu (${size_mb} MB) mieści się w limicie 200 MB"
+
+      - name: Run container
+        run: |
+          docker run -d --name kalkulator -p 5000:5000 kalkulator-student
+          echo "Czekam na uruchomienie aplikacji..."
+          for i in {1..30}; do
+            if curl -fsS http://localhost:5000/health > /dev/null 2>&1; then
+              echo "Aplikacja gotowa po $i sekundach"
+              break
+            fi
+            if [ "$i" -eq 30 ]; then
+              echo "::error::Aplikacja nie uruchomiła się w ciągu 30 sekund"
+              docker logs kalkulator
+              exit 1
+            fi
+            sleep 1
+          done
+
+      - name: Test GET /health
+        run: |
+          response=$(curl -fsS http://localhost:5000/health)
+          echo "GET /health: $response"
+          if ! echo "$response" | python3 -c "import sys,json; d=json.load(sys.stdin); assert d.get('status')=='ok'"; then
+            echo "::error::GET /health nie zwrócił {\"status\": \"ok\"}"
+            exit 1
+          fi
+          echo "OK: /health zwraca {\"status\": \"ok\"}"
+
+      - name: Test dodawanie
+        run: |
+          response=$(curl -fsS -X POST http://localhost:5000/calculate \
+            -H "Content-Type: application/json" \
+            -d '{"a": 10, "op": "+", "b": 5}')
+          echo "POST /calculate (10+5): $response"
+          result=$(echo "$response" | python3 -c "import sys,json; print(json.load(sys.stdin)['result'])")
+          if [ "$result" != "15.0" ] && [ "$result" != "15" ]; then
+            echo "::error::Oczekiwano 15, otrzymano $result"
+            exit 1
+          fi
+          echo "OK: 10 + 5 = $result"
+
+      - name: Test odejmowanie
+        run: |
+          response=$(curl -fsS -X POST http://localhost:5000/calculate \
+            -H "Content-Type: application/json" \
+            -d '{"a": 20, "op": "-", "b": 8}')
+          echo "POST /calculate (20-8): $response"
+          result=$(echo "$response" | python3 -c "import sys,json; print(json.load(sys.stdin)['result'])")
+          if [ "$result" != "12.0" ] && [ "$result" != "12" ]; then
+            echo "::error::Oczekiwano 12, otrzymano $result"
+            exit 1
+          fi
+          echo "OK: 20 - 8 = $result"
+
+      - name: Test mnozenie
+        run: |
+          response=$(curl -fsS -X POST http://localhost:5000/calculate \
+            -H "Content-Type: application/json" \
+            -d '{"a": 7, "op": "*", "b": 6}')
+          echo "POST /calculate (7*6): $response"
+          result=$(echo "$response" | python3 -c "import sys,json; print(json.load(sys.stdin)['result'])")
+          if [ "$result" != "42.0" ] && [ "$result" != "42" ]; then
+            echo "::error::Oczekiwano 42, otrzymano $result"
+            exit 1
+          fi
+          echo "OK: 7 * 6 = $result"
+
+      - name: Test dzielenie
+        run: |
+          response=$(curl -fsS -X POST http://localhost:5000/calculate \
+            -H "Content-Type: application/json" \
+            -d '{"a": 15, "op": "/", "b": 3}')
+          echo "POST /calculate (15/3): $response"
+          result=$(echo "$response" | python3 -c "import sys,json; print(json.load(sys.stdin)['result'])")
+          if [ "$result" != "5.0" ] && [ "$result" != "5" ]; then
+            echo "::error::Oczekiwano 5, otrzymano $result"
+            exit 1
+          fi
+          echo "OK: 15 / 3 = $result"
+
+      - name: Test dzielenie przez zero
+        run: |
+          status=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:5000/calculate \
+            -H "Content-Type: application/json" \
+            -d '{"a": 5, "op": "/", "b": 0}')
+          echo "POST /calculate (5/0): HTTP $status"
+          if [ "$status" != "400" ]; then
+            echo "::error::Dzielenie przez zero powinno zwracać HTTP 400, otrzymano HTTP $status"
+            exit 1
+          fi
+          echo "OK: Dzielenie przez zero zwraca HTTP 400"
+
+      - name: Test brakujace pola
+        run: |
+          status=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:5000/calculate \
+            -H "Content-Type: application/json" \
+            -d '{"a": 5}')
+          echo "POST /calculate (brak b i op): HTTP $status"
+          if [ "$status" != "400" ]; then
+            echo "::error::Brakujące pola powinny zwracać HTTP 400, otrzymano HTTP $status"
+            exit 1
+          fi
+          echo "OK: Brakujące pola zwracają HTTP 400"
+
+      - name: Check report exists
+        run: |
+          app="${{ steps.find-app.outputs.app }}"
+          if find "$app" -maxdepth 1 -name "*.md" ! -name "README.md" | grep -q .; then
+            report=$(find "$app" -maxdepth 1 -name "*.md" ! -name "README.md" | head -1)
+            echo "OK: Znaleziono sprawozdanie: $report"
+          else
+            echo "::warning::Nie znaleziono pliku sprawozdania (*.md) w $app"
+          fi
+
+      - name: Cleanup
+        if: always()
+        run: |
+          docker stop kalkulator || true
+          docker rm kalkulator || true
+
+      - name: Summary
+        run: |
+          echo "========================================"
+          echo "Wszystkie optymalizacje zostały zweryfikowane!"
+          echo "Folder studenta: ${{ steps.find-app.outputs.app }}"
+          echo "========================================"

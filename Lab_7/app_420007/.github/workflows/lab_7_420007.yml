@@ -23,5 +23,5 @@ jobs:
 
       - name: Run tests
         run: |
-          cd Lab_7/app_nrIndeksu
-          python -m pytest test_calculator.py -v
+          cd Lab_7/app_420007
+          python -m pytest test_api.py -v

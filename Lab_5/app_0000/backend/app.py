@@ -16,7 +16,9 @@ print(
 
 app = Flask(__name__)
 
-DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql://devops:devops123@db:5432/devops_db")
+DATABASE_URL = os.environ.get(
+    "DATABASE_URL", "postgresql://devops:devops123@db:5432/devops_db"
+)
 API_KEY = os.environ.get("API_KEY", "")
 SECRET_KEY = os.environ.get("SECRET_KEY", "")
 
@@ -30,15 +32,13 @@ def init_db():
         try:
             conn = get_connection()
             cur = conn.cursor()
-            cur.execute(
-                """
+            cur.execute("""
                 CREATE TABLE IF NOT EXISTS items (
                     id SERIAL PRIMARY KEY,
                     name TEXT NOT NULL,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
-            """
-            )
+            """)
             conn.commit()
             cur.close()
             conn.close()
@@ -74,7 +74,9 @@ def add_item():
         return jsonify({"error": "name is required"}), 400
     conn = get_connection()
     cur = conn.cursor()
-    cur.execute("INSERT INTO items (name) VALUES (%s) RETURNING id, name, created_at", (name,))
+    cur.execute(
+        "INSERT INTO items (name) VALUES (%s) RETURNING id, name, created_at", (name,)
+    )
     row = cur.fetchone()
     conn.commit()
     cur.close()

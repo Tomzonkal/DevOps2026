@@ -18,8 +18,8 @@ jobs:
 
       - name: Run tests
         run: |
-            cd Lab_7/app_420007
-            python -m pip install --upgrade pip
-            pip -m install -r requirements.txt
-            pip -m install pytest
-            python -m pytest test_api.py -v
+          cd Lab_7/app_420007
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install pytest
+          python -m pytest test_api.py -v

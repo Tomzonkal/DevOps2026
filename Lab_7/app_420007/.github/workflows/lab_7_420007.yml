@@ -18,7 +18,7 @@ jobs:
 
       - name: Run tests
         run: |
-          cd Lab_7/app_420007
+           cd Lab_7/app_420007
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install pytest

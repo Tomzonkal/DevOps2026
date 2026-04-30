@@ -3,7 +3,7 @@ name: CI
 on:
   push:
     branches:
-      - main
+      - lab_7/new_branch_420007
 
 jobs:
   test:

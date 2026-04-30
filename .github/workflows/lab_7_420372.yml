@@ -3,7 +3,7 @@ name: CI
 on:
   push:
     branches:
-      - main
+      - lab_7/new_branch_420372
 
 jobs:
   test:
@@ -21,7 +21,10 @@ jobs:
       - name: Upgrade pip
         run: python -m pip install --upgrade pip
 
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
       - name: Run tests
         run: |
-          cd Lab_7/app_nrIndeksu
+          cd Lab_7/app_420372
           python -m pytest test_calculator.py -v

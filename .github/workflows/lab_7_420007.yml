@@ -1,8 +1,7 @@
-name: lab_7
+name: CI
 
 on:
   push:
-    
 
 jobs:
   test:
@@ -17,12 +16,19 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Upgrade pip
-        run: python -m pip install --upgrade pip
+      - name: Install dependencies
+        run: |
+          cd Lab_7/app_420007
+          pip install -r requirements.txt
+          pip install pytest requests
+
+      - name: Start app
+        run: |
+          cd Lab_7/app_420007
+          python calculator.py &
+          sleep 3
 
       - name: Run tests
         run: |
-        cd Lab_7/app_420007
-        pip install -r requirements.txt
-        pip install pytest
-        python -m pytest test_api.py -v
+          cd Lab_7/app_420007
+          python -m pytest test_calculator.py -v

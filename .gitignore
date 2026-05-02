@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.env
+Lab_3/env_419912/ 
+Lab_5/screeny/ 

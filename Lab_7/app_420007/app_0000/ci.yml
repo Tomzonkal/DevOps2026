@@ -2,7 +2,9 @@ name: CI
 
 on:
   push:
-    
+    branches:
+      - main
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -21,7 +23,5 @@ jobs:
 
       - name: Run tests
         run: |
-	  cd Lab_7/app_420007
-          pip install -r requirements.txt
-          pip install pytest
-          python -m pytest test_api.py -v
+          cd Lab_7/app_nrIndeksu
+          python -m pytest test_calculator.py -v

@@ -23,7 +23,7 @@ services:
       API_KEY: ${API_KEY}
       SECRET_KEY: ${SECRET_KEY}
     ports:
-      - "5001:5000"
+      - "5000:5000"
     depends_on:
       db:
         condition: service_healthy

@@ -46,8 +46,6 @@ Zatrzymajmy teraz aplikację:
 
 Zdiagnozujmy teraz problemy za pomocą chatu LLM - np. Gemini Pro. Wklejmy do niego komunikaty błędów z logów oraz treść pliku `docker-compose.yml` i poprośmy o wskazanie błędów. Poniżej możemy zobaczyć fragment wypowiedzi chatu:
 
-![Zrzut ekranu odpowiedzi LLM](img/image_11.png)
-
 > W Twoim pliku docker-compose.yml występują dwa główne błędy, które uniemożliwiają kontenerowi backend połączenie się z bazą danych:
 > 
 > 1. **Brak wspólnej sieci (Network Isolation)**: Usługa db jest podłączona wyłącznie do sieci db_network, natomiast usługa backend tylko do sieci app_network. Kontenery znajdujące się w różnych sieciach nie widzą się nawzajem i nie mogą się komunikować.
@@ -60,49 +58,51 @@ Zdiagnozujmy teraz problemy za pomocą chatu LLM - np. Gemini Pro. Wklejmy do ni
 
 Dalej Gemini zasugerował, aby zamienić część `db` oraz `backend` pliku `docker-compose.yml`:
 
-![Zrzut ekranu starej wersji pliku docker-compose.yml](img/image_12.png)
+![Zrzut ekranu starej wersji pliku docker-compose.yml](img/image_11.png)
 
 Na poniższą (poprawioną):
 
-![Zrzut ekranu poprawionej wersji pliku docker-compose.yml](img/image_13.png)
+![Zrzut ekranu poprawionej wersji pliku docker-compose.yml](img/image_12.png)
 
 Teraz uruchommy Docker Compose ponownie i zobaczmy czy pozbyliśmy się błędu:
 
-![Logi z budowania obrazów i startu kontenerów po poprawce](img/image_14.png)
-
-![Błąd initdb w logach bazy danych](img/image_15.png)
+![Logi z budowania obrazów i startu kontenerów po poprawce](img/image_13.png)
 
 Na razie nie widać żadnego błędu [z połączeniem backendu]. Następnie sprawdźmy odpowiedź backendu na `/health`:
 
-![curl http://localhost:5000/health zwracający status ok](img/image_16.png)
+![curl http://localhost:5000/health zwracający status ok](img/image_14.png)
 
 Dostajemy pozytywną odpowiedź określającą status jako „ok". Kolejno zweryfikujmy dostępność frontendu:
 
-![curl http://localhost:80 i otrzymany kod HTML strony](img/image_17.png)
+![curl http://localhost:80 i otrzymany kod HTML strony 1](img/image_15.png)
+
+![curl http://localhost:80 i otrzymany kod HTML strony 2](img/image_16.png)
 
 Otrzymujemy oczekiwaną odpowiedź, jaką jest strona HTML aplikacji. Sprawdźmy jeszcze czy endpoint `/items` działa. Powinniśmy dostać pustą listę w nawiasach kwadratowych:
 
-![curl http://localhost:5000/items zwracający puste []](img/image_18.png)
+![curl http://localhost:5000/items zwracający puste []](img/image_17.png)
 
 Ostatnim krokiem będzie weryfikacja persystencji danych. Dodajmy przykładowy element przez API i zobaczmy czy pojawi się on na liście `/items`:
 
-![curl -X POST dodający element testowy](img/image_19.png)
+![curl -X POST dodający element testowy](img/image_18.png)
 
-![curl GET weryfikujący obecność nowego elementu na liście](img/image_20.png)
+![curl GET weryfikujący obecność nowego elementu na liście](img/image_19.png)
 
 Jak możemy zobaczyć, element rzeczywiście pojawił się na liście. Teraz zobaczmy czy element przetrwa ponowne uruchomienie aplikacji:
 
-![docker compose down zatrzymujący aplikację](img/image_21.png)
+![docker compose down zatrzymujący aplikację](img/image_20.png)
 
-![docker compose up startujący ponownie aplikację](img/image_22.png)
+![docker compose up startujący ponownie aplikację](img/image_21.png)
 
-![curl weryfikujący, że element przetrwał restart](img/image_23.png)
+![curl weryfikujący, że element przetrwał restart](img/image_22.png)
 
 Widzimy, że element jest nadal na liście. Teraz usuńmy wolumen wyłączając Docker Compose z parametrem `-v` i zobaczmy czy po restarcie aplikacji lista `/items` się wyczyściła:
 
-![docker compose down -v oraz końcowy curl pokazujący pustą listę](img/image_24.png)
+![docker compose down -v](img/image_23.png)
 
-Możemy zobaczyć, że wyczyszczenie zakończyło się sukcesem.
+Możemy zobaczyć, że wyczyszczenie zakończyło się sukcesem:
+
+![Końcowy curl pokazujący pustą listę](img/image_24.png)
 
 # Podsumowanie
 

@@ -4,33 +4,29 @@ Celem ćwiczenia było zapoznanie się z typowymi problemami bezpieczeństwa w k
 # Przebieg Ćwiczeń
 Na początku standardowo aktualizujemy metadane, przełączamy gałąź na `main` i pobieramy zmiany w kodzie:
 
-![git fetch --all](img/image_1.png)
-
-![git checkout main i git pull](img/image_2.png)
+![Aktualizacja metadanych i pobranie zmian](img/image_1.png)
 
 Teraz tworzymy nową gałąź z rozwiązaniem laboratorium:
 
-![git switch -c lab_5/new_branch_415942](img/image_3.png)
+![Tworzenie nowej gałęzi - krok 1](img/image_2.png)
 
-![git push --set-upstream origin lab_5/new_branch_415942](img/image_4.png)
+![Tworzenie nowej gałęzi - krok 2](img/image_3.png)
 
 Teraz utworzymy kopię `app_0000` z numerem naszego indeksu, na której będziemy następnie pracować:
 
-![Kopiowanie folderu cp -r Lab_5/app_0000 Lab_5/app_415942](img/image_5.png)
+![Kopiowanie folderu app_0000](img/image_4.png)
 
 Dodatkowo tworzymy jeszcze centralny punkt zarządzania konfiguracją, czyli plik `.env` na podstawie skopiowanego pliku `.env.example`:
 
-![Kopiowanie pliku konfiguracyjnego .env](img/image_6.png)
+![Tworzenie pliku .env](img/image_5.png)
 
 Teraz, po uruchomieniu aplikacji „Docker Desktop" startujemy „Docker Compose" w folderze `app_415942`:
 
-![docker compose up --build](img/image_7.png)
+![Uruchamianie Docker Compose](img/image_6.png)
 
 Przed rozpoczęciem pracy sprawdźmy jeszcze, czy aplikacja działa:
 
-![curl http://localhost:5000/health (status ok)](img/image_8.png)
-
-![curl http://localhost:5000/items (pusta lista)](img/image_9.png)
+![Sprawdzenie działania aplikacji](img/image_7.png)
 
 Widzimy, że status `/health` jest „ok", a lista `/items` pusta. Wszystko zatem jest w porządku. Przeprowadźmy teraz inspekcję warstw zbudowanego obrazu backendu za pomocą komendy:
 
@@ -38,19 +34,28 @@ Widzimy, że status `/health` jest „ok", a lista `/items` pusta. Wszystko zate
 
 Wśród historii warstw możemy między innymi zaobserwować lukę bezpieczeństwa. Widać bezpośrednio dwie instrukcje ENV, które zapisują sztywno w obrazie poufne dane. Każdy, kto pobierze ten obraz, może uruchomić polecenie `docker history` i zobaczyć oba klucze:
 
-![Odkryte klucze w wyniku docker history](img/image_10.png)
+```bash
+<missing>10 minutes ago   ENV SECRET_KEY=my-secret-key-do-not-0B        buildkit.dockerfile.v0
+<missing> 10 minutes ago   ENV API_KEY=super-secret-api-key- abc123
+```
 
 Możemy także zobaczyć, że obraz jest też bardzo obszerny w rozmiarze, co widać w poniższych fragmentach linijek:
 
-![Duże rozmiary warstw w docker history (np. 694MB)](img/image_11.png)
+```bash
+72.8MB    buildkit.dockerfile.v0
+694MB     buildkit.dockerfile.v0
+202MB     buildkit.dockerfile.v0
+65MB      buildkit.dockerfile.v0
+134MB     debuerreotype 0.17
+```
 
 Sprawdźmy teraz z jakim użytkownikiem działa proces w kontenerze:
 
-![Sprawdzenie użytkownika - docker compose exec backend whoami (root)](img/image_12.png)
+![Sprawdzenie użytkownika procesu](img/image_8.png)
 
 Teraz zamknijmy aplikację:
 
-![Wyłączenie środowiska - docker compose down](img/image_13.png)
+![Zamknięcie aplikacji](img/image_9.png)
 
 Wyślijmy teraz pliki `backend/Dockerfile`, `frontend/Dockerfile` oraz `docker-compose.yml` do chatu LLM, np. Gemini Pro, by zobaczyć jak zdiagnozuje on 4 poniższe błędy:
 1. Niespięte wersje obrazów bazowych,
@@ -58,55 +63,77 @@ Wyślijmy teraz pliki `backend/Dockerfile`, `frontend/Dockerfile` oraz `docker-c
 3. Hardkodowane hasło w docker-compose.yml,
 4. Kontener uruchomiony jako root.
 
+Oto odpowiedź Gemini:
+
+> Oto gdzie dokładnie leżą problemy w Twoich plikach i jak je załatać:
+> 
+> **1. Niespięte wersje obrazów bazowych (Unpinned base image versions)**
+> * Gdzie jest błąd: W pliku Dockerfile frontend ustawiłeś obraz bazowy jako `FROM nginx:latest`. O tym, dlaczego tag latest nie tenteguje, zdążyliśmy się już dzisiaj przekonać przy okazji bazy danych i Pythona. W środowiskach produkcyjnych użycie latest oznacza brak kontroli nad tym, jaka wersja serwera Nginx uruchomi się przy kolejnym budowaniu, co może popsuć aplikację lub przemycić luki z nowych wersji.
+> * Jak naprawić: Zablokuj konkretną, lekką i bezpieczną wersję. W pliku Dockerfile frontend zmień pierwszą linijkę na:
+>   `FROM nginx:1.25-alpine`
+>   (Wersje alpine zajmują ułamek tego co standardowe obrazy i zawierają mniej narzędzi systemowych, co zmniejsza tzw. "powierzchnię ataku").
+> 
+> **2. Hardkodowane sekrety w Dockerfile**
+> * Gdzie jest błąd: W Dockerfile backend wpisałeś jawnym tekstem `ENV API_KEY=super-secret-api-key-abc123` oraz `ENV SECRET_KEY=my-secret-key-do-not-share-2026`. To bardzo niebezpieczne! Każdy, kto pobierze Twój obraz, będzie mógł odczytać te klucze używając zwykłego polecenia `docker inspect`, nawet nie uruchamiając kontenera.
+> * Jak naprawić: 1. Usuń całkowicie te dwie linijki z pliku Dockerfile backend. 2. Klucze podepnij dopiero podczas uruchamiania kontenera w `docker-compose.yml`, dodając je do sekcji backend -> environment.
+> 
+> **3. Hardkodowane hasło w docker-compose.yml**
+> * Gdzie jest błąd: Twoje hasło `password123` leży na widoku w pliku `docker-compose.yml` w dwóch miejscach: w zmiennej `POSTGRES_PASSWORD` oraz jako część linku `DATABASE_URL`. Jeśli zrobisz `git commit`, to hasło trafi na zawsze do historii repozytorium.
+> * Jak naprawić: Wynieś poświadczenia do zewnętrznego pliku, który będzie ignorowany przez system kontroli wersji (Git). Utwórz w głównym folderze plik o nazwie `.env` i wpisz do niego hasła i klucze. Upewnij się, że plik `.env` jest dodany do pliku `.gitignore`. Podmień wartości w `docker-compose.yml` na odwołania do tych zmiennych.
+> 
+> **4. Kontener uruchomiony jako root**
+> * Gdzie jest błąd: Wewnątrz kontenerów, jeśli nie wskażesz inaczej, wszystkie procesy uruchamiają się na najwyższych prawach administratora (root). Oznacza to, że jeśli haker znajdzie np. lukę we frameworku Flask, od razu zdobędzie pełną kontrolę nad środowiskiem kontenera.
+> * Jak naprawić: Na samym końcu budowania obrazu powinieneś stworzyć "zwykłego" użytkownika bez uprawnień i nakazać Dockerowi uruchamiać aplikację z jego konta. W pliku Dockerfile backend zmodyfikuj końcówkę poprzez stworzenie grupy i użytkownika `appuser`, zmianę uprawnień i instrukcję `USER appuser`.
+
 Zajmijmy się najpierw pierwszym problemem. Musimy zmienić wersję obrazu z frontendowego Dockerfile z najnowszej, na lżejszą i bezpieczniejszą wersję, np. `1.25-alpine`:
 
-![Stary plik frontend/Dockerfile (FROM nginx:latest)](img/image_14.png)
+![Zmiana wersji obrazu bazowego](img/image_10.png)
 
-![Poprawiony plik frontend/Dockerfile (FROM nginx:1.25-alpine)](img/image_15.png)
+![Zmiana wersji obrazu bazowego - ciąg dalszy](img/image_11.png)
 
 Kolejnym problemem są wcześniej wspomniane hardkodowane sekrety w backendowym Dockerfile. Należy je usunąć stąd i przenieść do `docker-compose.yml`.
 
 Zmiana w backendowym Dockerfile:
 
-![Poprawiony plik backend/Dockerfile - usunięte ENV z kluczami](img/image_16.png)
+![Zmiana w backendowym Dockerfile](img/image_12.png)
 
 Zmiana w `docker-compose.yml`:
 
-![Stara konfiguracja docker-compose.yml z hasłem w plain text](img/image_17.png)
+![Zmiana w docker-compose.yml](img/image_13.png)
 
-![Przeniesione zmienne konfiguracyjne do sekcji environment](img/image_18.png)
+![Zmiana w docker-compose.yml - ciąg dalszy](img/image_14.png)
 
 Teraz te klucze oraz hasło, w tym także hasło wewnątrz adresu URL bazy danych, trzeba zamienić na odwołania do pliku `.env` w głównym folderze, gdzie zostaną przeniesione.
 
-![Końcowa poprawiona sekcja backend w docker-compose.yml z referencjami do zmiennych](img/image_19.png)
+![Zamiana na odwołania do pliku .env](img/image_15.png)
+
+![Zamiana na odwołania do pliku .env - ciąg dalszy](img/image_16.png)
 
 Plik `.env`:
 
-![Stworzony plik .env z hasłami i kluczami](img/image_20.png)
+![Plik .env](img/image_17.png)
 
 Dodajmy jeszcze wszystkie pliki z końcówką `.env` do pliku `.gitignore`, aby nie zostały one wysłane do publicznego repozytorium:
 
-![Edycja .gitignore w dodająca *.env](img/image_21.png)
+![Dodanie do pliku .gitignore](img/image_18.png)
 
 Ostatnim błędem jest uruchamianie kontenera jako root. Na końcu budowania obrazu musimy dodać "zwykłego" użytkownika z uprawnieniami jedynie do folderu z aplikacją i nakazać Dockerowi uruchamiać aplikację z właśnie tego konta. Musimy dodać poniższe linijki do backendowego Dockerfile:
 
-![Dodanie użytkownika bez uprawnień root w backend/Dockerfile](img/image_22.png)
+![Uruchamianie kontenera jako zwykły użytkownik](img/image_19.png)
 
 Uruchommy teraz Docker Compose i sprawdźmy czy działa poprawnie:
 
-![docker compose up --build po wszystkich poprawkach bezpieczeństwa](img/image_23.png)
+![Uruchomienie Docker Compose po poprawkach](img/image_20.png)
 
-![Weryfikacja curl po naprawie](img/image_24.png)
+![Sprawdzenie działania po poprawkach](img/image_21.png)
 
 Zobaczmy teraz czy problemy rzeczywiście zostały rozwiązane. Sprawdźmy najpierw wersję obrazu. Możemy zobaczyć, że wersja NGINX to rzeczywiście 1.25:
 
-![docker inspect sprawdzający wersję NGINXa (1.25.5)](img/image_25.png)
+![Sprawdzenie wersji NGINX](img/image_22.png)
 
 Możemy od razu zobaczyć, że użytkownikiem na którym działa kontener już nie jest root:
-```bash
-$ docker compose exec backend whoami
-appuser
-```
+
+![Sprawdzenie użytkownika po poprawkach](img/image_23.png)
 
 Włączmy `docker history`. Widzimy, że klucze już się nie wyświetlają:
 
@@ -127,19 +154,11 @@ ENV PATH=/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:
 
 Zweryfikujmy jeszcze na końcu persystencję przy dodaniu przykładowego elementu:
 
-```bash
-$ curl -X POST http://localhost:5000/items \
--H "Content-Type: application/json" \
--d '{"name": "element testowy"}'
-
-{"created_at":"2026-04-18 16:16:22.405915", "id":1,"name":"element testowy"}
-```
+![Weryfikacja persystencji - dodanie elementu](img/image_24.png)
 
 Teraz uruchommy aplikację ponownie. Element rzeczywiście przetrwał restart:
-```bash
-$ curl http://localhost:5000/items
-[{"created_at":"2026-04-18 16:16:22.405915", "id":1,"name":"element testowy"}]
-```
+
+![Weryfikacja persystencji po restarcie](img/image_25.png)
 
 # Podsumowanie
 

@@ -1,0 +1,47 @@
+services:
+
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: devops_db
+      POSTGRES_USER: devops
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U devops -d devops_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./backend
+    environment:
+      API_KEY: super-secret-api-key-abc123
+      ENV SECRET_KEY: my-secret-key-do-not-share-2026
+      DATABASE_URL: postgresql://devops:${DB_PASSWORD}@db:5432/devops_db
+    ports:
+      - "5000:5000"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - app_network
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - app_network
+
+networks:
+  app_network:
+    driver: bridge
+
+volumes:
+  postgres_data:

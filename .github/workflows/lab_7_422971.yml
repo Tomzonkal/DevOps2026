@@ -27,4 +27,6 @@ jobs:
       - name: Run tests
         run: |
           cd Lab_7/app_422971
+          python calculator.py &
+          sleep 3
           python -m pytest test_calculator.py -v

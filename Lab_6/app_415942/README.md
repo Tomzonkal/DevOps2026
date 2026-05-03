@@ -4,122 +4,119 @@ Celem ćwiczenia było zapoznanie się z technikami optymalizacji obrazów Docke
 # Przebieg Ćwiczeń
 Na początku standardowo aktualizujemy metadane, przełączamy gałąź na `main` i pobieramy zmiany w kodzie:
 
-![git fetch --all](img/image_1.png)
-
-![git checkout main i git pull](img/image_2.png)
+![Pobieranie zmian z repozytorium - git fetch --all](img/image_1.png)
 
 Teraz tworzymy nową gałąź z rozwiązaniem laboratorium:
 
-![git switch -c i git push --set-upstream](img/image_3.png)
+![Przejście na gałąź main i pobranie kodu - git checkout i git pull](img/image_2.png)
+
+![Tworzenie nowej gałęzi i wypychanie jej na serwer](img/image_3.png)
 
 Teraz utworzymy kopię `app_0000` z numerem naszego indeksu, na której będziemy następnie pracować:
 
-![Kopiowanie katalogu - cp -r](img/image_4.png)
+![Kopiowanie katalogu aplikacji cp -r](img/image_4.png)
 
 Pierwszym głównym punktem laboratoriów będzie optymalizacja obrazu pod względem jego rozmiaru oraz czasu budowania. Na samym początku musimy ustalić punkt odniesienia, czyli sprawdzić parametry obrazu przed próbą jego optymalizacji. Najpierw zbudujmy obraz "as-is" ze sprawdzeniem czasu:
 
-![Budowanie obrazu baseline z poleceniem time](img/image_5.png)
+![Budowanie obrazu baseline z użyciem polecenia time](img/image_5.png)
 
 Zobaczmy czas buildu:
 
-![Czas buildu baseline - ok. 13.7s](img/image_6.png)
+![Sprawdzenie czasu budowania obrazu baseline](img/image_6.png)
 
 Oraz rozmiar obrazu:
 
-![Rozmiar obrazu baseline - 1.63GB](img/image_7.png)
+![Weryfikacja rozmiaru obrazu baseline komendą docker images](img/image_7.png)
 
 Zweryfikujmy jeszcze, czy aplikacja poprawnie działa:
 
-![Uruchomienie kontenera kalkulator-test](img/image_8.png)
-
-![Test aplikacji - curl /calculate dodawanie](img/image_9.png)
+![Uruchomienie kontenera testowego i test aplikacji curl](img/image_8.png)
 
 Dodawanie 10+5 zwróciło wynik 15, więc wszystko jest OK. Zatrzymajmy test i usuńmy go:
 
-![Zatrzymanie i usunięcie kontenera kalkulator-test](img/image_10.png)
+![Zatrzymanie i usunięcie kontenera kalkulator-test](img/image_9.png)
 
 Spróbujmy teraz skrócić czas budowania przez zmianę kolejności warstw. Sprawdźmy zawartość pliku Dockerfile:
 
-![Oryginalny Dockerfile przed optymalizacją warstw](img/image_11.png)
+![Początkowa, nieoptymalna zawartość pliku Dockerfile](img/image_10.png)
 
 Możemy zobaczyć, że całe kopiowanie zachodzi przed `pip install`. To powoduje, że każda, nawet minimalna zmiana w kodzie powoduje ponowne instalowanie wszystkich pakietów. Należy zmienić kolejność warstw i dodać flagę `--no-cache-dir`, która usuwa cache pip z warstwy, tym samym zmniejszając rozmiar obrazu:
 
-![Zoptymalizowany Dockerfile ze zmienioną kolejnością warstw](img/image_12.png)
+![Zoptymalizowany Dockerfile ze zmienioną kolejnością warstw](img/image_11.png)
 
 Przebudujmy teraz obraz. Warstwa `pip install` jest CACHED:
 
-![Logi z budowy - widoczne CACHED dla pip install](img/image_13.png)
+![Logi z przebudowy obrazu - krok pip install jest skeszowany (CACHED)](img/image_12.png)
 
 Zmieńmy nieznacznie zawartość pliku `app.py` i przebudujmy obraz. Mimo, że `COPY app.py` jest przebudowywane, `pip install` nadal jest CACHED:
 
-![Kolejne logi z budowy udowadniające działanie cache mimo edycji kodu](img/image_14.png)
+![Przebudowa obrazu po edycji app.py - instalacja zależności nadal skeszowana](img/image_13.png)
 
 Sprawdźmy rozmiar po optymalizacji. Widać, że nieznacznie się zmniejszył:
 
-![Rozmiar obrazu po optymalizacji 1 - 1.62GB](img/image_15.png)
+![Sprawdzenie rozmiaru obrazu po optymalizacji warstw](img/image_14.png)
 
 Teraz zajmiemy się dodaniem pliku `.dockerignore`, aby Docker nie wysyłał całego katalogu jako kontekstu budowania, tylko jego niezbędne części. Utwórzmy zatem plik `.dockerignore` i opiszmy typy plików, których nie ma potrzeby wysyłać:
 
-![Zawartość pliku .dockerignore](img/image_16.png)
+![Utworzenie i zawartość pliku .dockerignore](img/image_15.png)
 
 Przebudujmy obraz i sprawdźmy rozmiar. W naszym przypadku nie zmieni się on znacznie, ponieważ cały kontekst waży o wiele mniej niż 1 MB:
 
-![Rozmiar obrazu z .dockerignore - wciąż ok. 1.62GB](img/image_17.png)
+![Weryfikacja rozmiaru obrazu po dodaniu pliku .dockerignore](img/image_16.png)
 
 Teraz zajmiemy się zmianą wersji obrazu. Wewnątrz naszego Dockerfile w pierwszej linijce wersję obrazu mamy ustawioną jako `python:3.11`:
 
-![Wskazanie na FROM python:3.11 w Dockerfile](img/image_18.png)
+![Obecna instrukcja FROM z python:3.11 w pliku Dockerfile](img/image_17.png)
 
 Zmieńmy ją na wersję slim to powinno znacznie zmniejszyć rozmiar obrazu:
 
-![Zmiana na FROM python:3.11-slim](img/image_19.png)
+![Zmiana obrazu bazowego na python:3.11-slim w Dockerfile](img/image_18.png)
 
 Przebudujmy obraz i porównajmy rozmiar. Możemy zobaczyć, że kilkukrotnie się zmniejszył:
 
-![Porównanie rozmiarów - slim waży 210MB](img/image_20.png)
+![Porównanie rozmiarów - obraz slim jest kilkukrotnie mniejszy](img/image_19.png)
 
 Możemy sprawdzić jeszcze wersję alpine:
 
-![Zmiana na FROM python:3.11-alpine](img/image_21.png)
+![Zmiana obrazu bazowego na python:3.11-alpine w Dockerfile](img/image_20.png)
 
 Możemy zobaczyć, że jest ona jeszcze lżejsza, ma ponad 10 razy mniejszy rozmiar od zwykłej wersji `python:3.11`:
 
-![Porównanie rozmiarów - alpine waży 108MB](img/image_22.png)
+![Porównanie rozmiarów - obraz alpine ma najmniejszy rozmiar](img/image_21.png)
 
 Zweryfikujmy jeszcze poprawność działania aplikacji przeprowadzając test mnożenia 6*7. Dostajemy rezultat 42, więc możemy stwierdzić, że aplikacja działa poprawnie.
 
-![Test curl aplikacji na obrazie alpine - zwraca 42](img/image_23.png)
+![Weryfikacja działania aplikacji na obrazie alpine - test curl](img/image_22.png)
 
 Zatrzymajmy kontener i usuńmy jego definicję:
 
-![Zatrzymanie i usunięcie kontenera testowego](img/image_24.png)
+![Zatrzymanie i usunięcie kontenera opartego na alpine](img/image_23.png)
 
 Ostatnią optymalizacją, którą przeprowadzimy będzie pominięcie narzędzi do testowania w buildzie. W tym celu przepiszmy Dockerfile na multi-stage build:
 
-![Dockerfile skonfigurowany jako multi-stage build](img/image_25.png)
+![Przepisany Dockerfile wykorzystujący multi-stage build](img/image_24.png)
 
 Flaga `--user` w `pip install` powoduje że pakiety trafiają do `/root/.local` zamiast do systemowego `/usr/lib/python3`. Dzięki temu w drugim stage wystarczy skopiować jeden folder (`COPY --from=builder /root/.local /root/.local`) zamiast przenosić całe środowisko systemowe.
 
 Przebudujmy teraz obraz i sprawdźmy czas budowania wraz z rozmiarem obrazu:
 
-![Czas budowania multi-stage - ok. 7.4s](img/image_26.png)
+![Sprawdzenie czasu budowania dla obrazu multi-stage](img/image_25.png)
 
-Widzimy, że czas budowania zmniejszył się dwukrotnie względem pierwszego obrazu. Sprawdźmy teraz rozmiar:
+Widzimy, że czas budowania zmniejszył się prawie dwukrotnie względem pierwszego obrazu. Sprawdźmy teraz rozmiar:
 
-![Rozmiar finalnego obrazu multi-stage - 194MB](img/image_27.png)
+![Weryfikacja rozmiaru ostatecznego obrazu multi-stage](img/image_26.png)
 
 Można zobaczyć, że multi-stage slim ma jeszcze mniejszy rozmiar od poprzedniej wersji slim (chociaż większy niż alpine). Zweryfikujmy na końcu jeszcze poprawność działania zoptymalizowanej aplikacji. Zrobimy dodawanie 10+5 i dzielenie 10/0:
 
-![Uruchomienie finalnego kontenera i testy poprawności (health, dodawanie, dzielenie przez zero)](img/image_28.png)
+![Uruchomienie finalnego kontenera i testy endpointów kalkulatora](img/image_27.png)
 
 Widzimy że dostajemy status `/health` jako „ok", poprawny wynik dodawania 15 i ostrzeżenie przed dzieleniem przez zero. Ostatecznie zatrzymajmy kontener i usuńmy jego definicję:
 
-![Zatrzymanie finalnego kontenera](img/image_29.png)
+![Zatrzymanie i usunięcie ostatecznego kontenera kalkulator-final](img/image_28.png)
 
 Wykonajmy jeszcze commita i wypchnijmy zmiany:
 
-![Zakończenie pracy - git add, commit i push](img/image_30.png)
-
+![Wykonanie commita i wypchnięcie zmian do repozytorium (git add, commit, push)](img/image_29.png)
 
 # Wnioski
 

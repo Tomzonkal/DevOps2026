@@ -1,8 +1,3 @@
-I see you I know you use LLMs.
-
-Racja, mój błąd! Przeoczyłem pole tekstowe z diagnozą od chatu LLM (oraz dokładne bloki kodu), które powinny znaleźć się w treści. Oto poprawiona wersja sprawozdania, uwzględniająca brakujący tekst oraz zachowująca równo 24 miejsca na zrzuty ekranu:
-
-```markdown
 # Wstęp
 Celem ćwiczenia było zapoznanie się z podstawami Dockera i Docker Compose poprzez diagnozę i naprawę celowo zepsutej aplikacji wieloserwisowej. Pomogło to w nauce analizowania logów kontenerów, zrozumieniu konfiguracji sieci, wolumenów i zależności między serwisami.
 
@@ -120,4 +115,3 @@ W tym laboratorium przeszliśmy przez proces wdrażania, diagnozowania i naprawy
 * **Persystencja danych (Volumes)** – testowanie trwałości danych po zamknięciu kontenerów oraz świadome ich czyszczenie przy pomocy parametru `-v`.
 
 Całość dobrze ilustruje specyfikę pracy z aplikacjami opartymi na mikrousługach: lokalizacja usterki w logach → naprawa konfiguracji deklaratywnej `.yml` → re-deploy → weryfikacja poprawności komunikacji i persystencji.
-```

@@ -20,13 +20,18 @@ jobs:
       - name: Find student app directory
         id: find-app
         run: |
-          mapfile -t apps < <(find Lab_7 -maxdepth 1 -type d -name 'app_[0-9]*' ! -name 'app_0000' | sort)
+          base_sha="${{ github.event.pull_request.base.sha }}"
+          git fetch --depth=1 origin "$base_sha"
+          mapfile -t apps < <(git diff --name-only "${base_sha}...HEAD" \
+            | grep -oE 'Lab_7/app_[0-9]+' \
+            | sort -u \
+            | grep -v 'app_0000')
           if [ "${#apps[@]}" -eq 0 ]; then
-            echo "::error::Nie znaleziono folderu app_NNNNN — utwórz folder z numerem indeksu (np. app_123456)"
+            echo "::error::Nie znaleziono folderu app_NNNNN w zmianach PR — utwórz folder z numerem indeksu (np. app_123456)"
             exit 1
           fi
           if [ "${#apps[@]}" -gt 1 ]; then
-            echo "::error::Znaleziono więcej niż jeden folder studenta: ${apps[*]} — zostaw tylko jeden folder app_nrIndeksu"
+            echo "::error::Znaleziono więcej niż jeden folder studenta w PR: ${apps[*]} — zostaw tylko jeden folder app_nrIndeksu"
             exit 1
           fi
           app="${apps[0]}"

@@ -1,0 +1,240 @@
+name: lab_8_github_actions
+
+on:
+  pull_request:
+    branches:
+      - TEST
+      - main
+    paths:
+      - 'Lab_8/app_*/**'
+
+jobs:
+  validate:
+    name: Weryfikacja Docker CI/CD pipeline
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Find student app directory
+        id: find-app
+        run: |
+          base_sha="${{ github.event.pull_request.base.sha }}"
+          git fetch --depth=1 origin "$base_sha"
+          mapfile -t apps < <(git diff --name-only "${base_sha}...HEAD" \
+            | grep -oE 'Lab_8/app_[0-9]+' \
+            | sort -u \
+            | grep -v 'app_0000')
+          if [ "${#apps[@]}" -eq 0 ]; then
+            echo "::error::Nie znaleziono folderu app_NNNNN w zmianach PR — utwórz folder z numerem indeksu (np. app_123456)"
+            exit 1
+          fi
+          if [ "${#apps[@]}" -gt 1 ]; then
+            echo "::error::Znaleziono więcej niż jeden folder studenta w PR: ${apps[*]} — zostaw tylko jeden folder app_nrIndeksu"
+            exit 1
+          fi
+          app="${apps[0]}"
+          echo "app=$app" >> $GITHUB_OUTPUT
+          echo "Znaleziono folder studenta: $app"
+
+      - name: Check required files exist
+        run: |
+          app="${{ steps.find-app.outputs.app }}"
+          for f in app.py Dockerfile requirements.txt test_app.py; do
+            if [ ! -f "$app/$f" ]; then
+              echo "::error::Brak pliku $f w $app"
+              exit 1
+            fi
+            echo "OK: $f istnieje"
+          done
+
+      - name: Check student workflow exists and is valid
+        run: |
+          echo "--- Sprawdzam workflow studenta ---"
+          index=$(basename "${{ steps.find-app.outputs.app }}" | sed 's/app_//')
+          wf=".github/workflows/lab_8_${index}.yml"
+
+          if [ ! -f "$wf" ]; then
+            echo "::error::Brak pliku workflow studenta: $wf"
+            echo "::error::Stwórz plik .github/workflows/lab_8_${index}.yml zgodnie z krokiem 7 instrukcji"
+            exit 1
+          fi
+          echo "OK: Znaleziono workflow studenta: $wf"
+
+          # UWAGA: PyYAML parsuje klucz `on:` jako boolean True, nie string "on"
+          python3 - <<PYEOF
+          import sys, yaml, re
+
+          with open("$wf") as f:
+              content = f.read()
+              f.seek(0)
+              wf_data = yaml.safe_load(f)
+
+          failed = False
+
+          # --- Sprawdź trigger branches ---
+          on_section = wf_data.get(True, {}) or {}
+          push_cfg = on_section.get("push", {}) or {}
+          branches = push_cfg.get("branches", [])
+          if isinstance(branches, str):
+              branches = [branches]
+
+          if branches == ["main"]:
+              print("::error::Workflow triggeruje się tylko na 'main' — zmień sekcję 'branches:' na swój feature branch (krok 7.2 instrukcji)")
+              failed = True
+          elif not branches:
+              print("::warning::Sekcja 'branches:' w workflow jest pusta lub brakuje jej — upewnij się że trigger jest prawidłowy")
+          else:
+              print(f"OK: Trigger branches: {branches}")
+
+          # --- Sprawdź krok Docker build ---
+          if not re.search(r'docker[/\s]*(build|build-push)', content, re.IGNORECASE):
+              print("::error::Brak kroku budowania obrazu Docker — dodaj krok z 'docker build' lub 'docker/build-push-action' (krok 7.2 instrukcji)")
+              failed = True
+          else:
+              print("OK: Znaleziono krok budowania obrazu Docker")
+
+          # --- Sprawdź krok push do rejestru ---
+          if not re.search(r'(docker\s+push|push:\s*true)', content, re.IGNORECASE):
+              print("::error::Brak kroku wysyłania obrazu do rejestru — dodaj 'docker push' lub 'push: true' w build-push-action (krok 7.5 instrukcji)")
+              failed = True
+          else:
+              print("OK: Znaleziono krok wysyłania obrazu do rejestru")
+
+          # --- Sprawdź krok logowania do rejestru (Docker Hub lub ghcr.io) ---
+          if not re.search(r'(docker/login-action|docker\s+login)', content, re.IGNORECASE):
+              print("::error::Brak kroku logowania do rejestru — dodaj 'docker/login-action' (krok 7.4 instrukcji)")
+              failed = True
+          else:
+              # Rozróżnij Docker Hub vs ghcr.io i daj info
+              if re.search(r'DOCKERHUB_TOKEN', content):
+                  print("OK: Znaleziono logowanie do Docker Hub (DOCKERHUB_TOKEN)")
+              elif re.search(r'ghcr\.io', content):
+                  print("OK: Znaleziono logowanie do GitHub Container Registry (ghcr.io)")
+              else:
+                  print("OK: Znaleziono krok logowania do rejestru")
+
+          # --- Sprawdź instalację zależności przed testami ---
+          if not re.search(r'pip install.{0,80}requirements', content, re.DOTALL | re.IGNORECASE):
+              print("::error::Brak kroku instalacji zależności — dodaj 'pip install -r requirements.txt' przed krokiem z testami (krok 7.2 instrukcji)")
+              failed = True
+          else:
+              print("OK: Znaleziono instalację zależności z requirements.txt")
+
+          sys.exit(1 if failed else 0)
+          PYEOF
+
+      - name: Build Docker image
+        id: docker-build
+        run: |
+          app="${{ steps.find-app.outputs.app }}"
+          index=$(basename "$app" | sed 's/app_//')
+          image="lab8-app-${index}:grading"
+          docker build -t "$image" "$app"
+          echo "image=$image" >> $GITHUB_OUTPUT
+          echo "OK: Obraz Docker zbudowany pomyślnie: $image"
+
+      - name: Run app container
+        run: |
+          docker run -d -p 5000:5000 --name lab8-grading-container "${{ steps.docker-build.outputs.image }}"
+          echo "Czekam na uruchomienie kontenera..."
+          for i in {1..30}; do
+            if curl -fsS http://localhost:5000/health > /dev/null 2>&1; then
+              echo "Kontener gotowy po $i sekundach"
+              break
+            fi
+            if [ "$i" -eq 30 ]; then
+              echo "::error::Kontener nie uruchomił się w ciągu 30 sekund"
+              docker logs lab8-grading-container
+              exit 1
+            fi
+            sleep 1
+          done
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r "${{ steps.find-app.outputs.app }}/requirements.txt"
+
+      - name: Run student tests
+        timeout-minutes: 5
+        run: |
+          cd "${{ steps.find-app.outputs.app }}"
+          python -m pytest test_app.py -v
+
+      - name: Verify /uppercase endpoint
+        run: |
+          response=$(curl -fsS -X POST http://localhost:5000/uppercase \
+            -H "Content-Type: application/json" \
+            -d '{"text": "hello world"}')
+          echo "POST /uppercase: $response"
+          result=$(echo "$response" | python3 -c "import sys,json; print(json.load(sys.stdin)['result'])")
+          if [ "$result" != "HELLO WORLD" ]; then
+            echo "::error::Oczekiwano 'HELLO WORLD', otrzymano '$result'"
+            exit 1
+          fi
+          echo "OK: uppercase('hello world') = $result"
+
+      - name: Verify /reverse endpoint
+        run: |
+          response=$(curl -fsS -X POST http://localhost:5000/reverse \
+            -H "Content-Type: application/json" \
+            -d '{"text": "abcde"}')
+          echo "POST /reverse: $response"
+          result=$(echo "$response" | python3 -c "import sys,json; print(json.load(sys.stdin)['result'])")
+          if [ "$result" != "edcba" ]; then
+            echo "::error::Oczekiwano 'edcba', otrzymano '$result'"
+            exit 1
+          fi
+          echo "OK: reverse('abcde') = $result"
+
+      - name: Verify /word-count endpoint
+        run: |
+          response=$(curl -fsS -X POST http://localhost:5000/word-count \
+            -H "Content-Type: application/json" \
+            -d '{"text": "raz dwa trzy"}')
+          echo "POST /word-count: $response"
+          result=$(echo "$response" | python3 -c "import sys,json; print(json.load(sys.stdin)['count'])")
+          if [ "$result" != "3" ]; then
+            echo "::error::Oczekiwano 3, otrzymano $result"
+            exit 1
+          fi
+          echo "OK: word-count('raz dwa trzy') = $result"
+
+      - name: Verify error handling (missing field returns HTTP 400)
+        run: |
+          status=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:5000/uppercase \
+            -H "Content-Type: application/json" \
+            -d '{}')
+          echo "POST /uppercase (brak pola text): HTTP $status"
+          if [ "$status" != "400" ]; then
+            echo "::error::Brakujące pole 'text' powinno zwracać HTTP 400, otrzymano HTTP $status"
+            exit 1
+          fi
+          echo "OK: Brakujące pole zwraca HTTP 400"
+
+      - name: Stop container
+        if: always()
+        run: |
+          docker stop lab8-grading-container || true
+          docker rm lab8-grading-container || true
+
+      - name: Check report location
+        run: |
+          echo "--- Sprawozdanie ---"
+          echo "Sprawozdanie dla tego laboratorium trafia do zewnętrznego repozytorium:"
+          echo "https://github.com/Tomzonkal/Devops_2026_sprawka w folderze Lab_8/nrIndeksu/"
+          echo "Grading nie weryfikuje zewnętrznego repo — sprawdzane ręcznie przez prowadzącego."
+
+      - name: Summary
+        run: |
+          echo "========================================"
+          echo "Wszystkie weryfikacje przeszły pomyślnie!"
+          echo "Folder studenta: ${{ steps.find-app.outputs.app }}"
+          echo "========================================"

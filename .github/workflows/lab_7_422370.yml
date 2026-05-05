@@ -22,7 +22,9 @@ jobs:
         run: python -m pip install --upgrade pip
 
       - name: Install dependencies
-        run: pip install pytest
+        run:
+          pip install pytest
+          pip install pytest requests
 
       - name: Run tests
         run: |

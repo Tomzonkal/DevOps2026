@@ -56,8 +56,8 @@ git push
 ### Krok 2 – Przygotowanie środowiska pracy
 
 ```bash
-xcopy Lab_4\app_0000 Lab_4\app_123456 /E /I
-copy Lab_4\app_123456\.env.example Lab_4\app_123456\.env
+xcopy Lab_4\app_0000 Lab_4\app_401967 /E /I
+copy Lab_4\app_401967\.env.example Lab_4\app_401967\.env
 cd Lab_4/app_401967
 ```
 

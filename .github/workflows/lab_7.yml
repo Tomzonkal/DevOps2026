@@ -1,0 +1,220 @@
+name: lab_7_github_actions
+
+on:
+  pull_request:
+    branches:
+      - TEST
+      - main
+    paths:
+      - 'Lab_7/app_*/**'
+
+jobs:
+  validate-tests:
+    name: Weryfikacja testów kalkulatora
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Find student app directory
+        id: find-app
+        run: |
+          mapfile -t apps < <(find Lab_7 -maxdepth 1 -type d -name 'app_[0-9]*' ! -name 'app_0000' | sort)
+          if [ "${#apps[@]}" -eq 0 ]; then
+            echo "::error::Nie znaleziono folderu app_NNNNN — utwórz folder z numerem indeksu (np. app_123456)"
+            exit 1
+          fi
+          if [ "${#apps[@]}" -gt 1 ]; then
+            echo "::error::Znaleziono więcej niż jeden folder studenta: ${apps[*]} — zostaw tylko jeden folder app_nrIndeksu"
+            exit 1
+          fi
+          app="${apps[0]}"
+          echo "app=$app" >> $GITHUB_OUTPUT
+          echo "Znaleziono folder studenta: $app"
+
+      - name: Check calculator.py exists
+        run: |
+          if [ ! -f "${{ steps.find-app.outputs.app }}/calculator.py" ]; then
+            echo "::error::Brak pliku calculator.py w ${{ steps.find-app.outputs.app }}"
+            exit 1
+          fi
+          echo "OK: calculator.py istnieje"
+
+      - name: Check test_calculator.py exists
+        run: |
+          if [ ! -f "${{ steps.find-app.outputs.app }}/test_calculator.py" ]; then
+            echo "::error::Brak pliku test_calculator.py w ${{ steps.find-app.outputs.app }} — napisz testy z pomocą AI zgodnie z krokiem 5 instrukcji"
+            exit 1
+          fi
+          echo "OK: test_calculator.py istnieje"
+
+      - name: Check requirements.txt exists
+        run: |
+          if [ ! -f "${{ steps.find-app.outputs.app }}/requirements.txt" ]; then
+            echo "::error::Brak pliku requirements.txt w ${{ steps.find-app.outputs.app }}"
+            exit 1
+          fi
+          echo "OK: requirements.txt istnieje"
+
+      - name: Check student workflow exists and is fixed
+        run: |
+          echo "--- Sprawdzam workflow studenta ---"
+          # Wyciągamy numer indeksu z nazwy folderu, np. Lab_7/app_123456 -> 123456
+          index=$(basename "${{ steps.find-app.outputs.app }}" | sed 's/app_//')
+          wf=".github/workflows/lab_7_${index}.yml"
+
+          if [ ! -f "$wf" ]; then
+            echo "::error::Brak pliku workflow studenta: $wf"
+            echo "::error::Skopiuj Lab_7/app_${index}/ci.yml do .github/workflows/lab_7_${index}.yml zgodnie z krokiem 3.2 instrukcji"
+            exit 1
+          fi
+          echo "OK: Znaleziono workflow studenta: $wf"
+
+          # Sprawdź błąd 1 (branches: main) i błąd 2 (brak pip install)
+          # UWAGA: PyYAML parsuje klucz `on:` jako boolean True, nie string "on"
+          python3 - <<PYEOF
+          import sys, yaml, re
+
+          with open("$wf") as f:
+              content = f.read()
+              f.seek(0)
+              wf_data = yaml.safe_load(f)
+
+          failed = False
+
+          # --- Błąd 1: trigger branches ---
+          on_section = wf_data.get(True, {}) or {}
+          push_cfg = on_section.get("push", {}) or {}
+          branches = push_cfg.get("branches", [])
+          if isinstance(branches, str):
+              branches = [branches]
+
+          if branches == ["main"]:
+              print("::error::BLAD 1 nie naprawiony: workflow triggeruje się tylko na 'main' — zmień sekcję 'branches:' na swój feature branch (krok 6.3 instrukcji)")
+              failed = True
+          elif not branches:
+              print("::warning::Sekcja 'branches:' w workflow jest pusta lub brakuje jej — upewnij się że trigger jest prawidłowy")
+          else:
+              print(f"OK: Trigger branches: {branches}")
+
+          # --- Błąd 2: brak instalacji zależności ---
+          # Szukamy 'pip install' w pobliżu 'requirements' w treści workflow
+          if not re.search(r'pip install.{0,80}requirements', content, re.DOTALL | re.IGNORECASE):
+              print("::error::BLAD 2 nie naprawiony: brak kroku instalującego zależności z requirements.txt — dodaj 'pip install -r requirements.txt' przed krokiem z testami")
+              failed = True
+          else:
+              print("OK: Znaleziono instalację zależności z requirements.txt")
+
+          sys.exit(1 if failed else 0)
+          PYEOF
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r "${{ steps.find-app.outputs.app }}/requirements.txt"
+
+      - name: Start calculator server
+        run: |
+          python "${{ steps.find-app.outputs.app }}/calculator.py" &
+          echo "Czekam na uruchomienie serwera..."
+          for i in {1..30}; do
+            if curl -fsS http://localhost:5000/health > /dev/null 2>&1; then
+              echo "Serwer gotowy po $i sekundach"
+              break
+            fi
+            if [ "$i" -eq 30 ]; then
+              echo "::error::Serwer kalkulatora nie uruchomił się w ciągu 30 sekund"
+              exit 1
+            fi
+            sleep 1
+          done
+
+      - name: Run student tests
+        timeout-minutes: 5
+        run: |
+          cd "${{ steps.find-app.outputs.app }}"
+          python -m pytest test_calculator.py -v
+
+      - name: Verify /add endpoint
+        run: |
+          response=$(curl -fsS -X POST http://localhost:5000/add \
+            -H "Content-Type: application/json" \
+            -d '{"a": 10, "b": 5}')
+          echo "POST /add (10+5): $response"
+          result=$(echo "$response" | python3 -c "import sys,json; print(json.load(sys.stdin)['result'])")
+          if [ "$result" != "15" ] && [ "$result" != "15.0" ]; then
+            echo "::error::Oczekiwano 15, otrzymano $result"
+            exit 1
+          fi
+          echo "OK: 10 + 5 = $result"
+
+      - name: Verify /subtract endpoint
+        run: |
+          response=$(curl -fsS -X POST http://localhost:5000/subtract \
+            -H "Content-Type: application/json" \
+            -d '{"a": 20, "b": 8}')
+          echo "POST /subtract (20-8): $response"
+          result=$(echo "$response" | python3 -c "import sys,json; print(json.load(sys.stdin)['result'])")
+          if [ "$result" != "12" ] && [ "$result" != "12.0" ]; then
+            echo "::error::Oczekiwano 12, otrzymano $result"
+            exit 1
+          fi
+          echo "OK: 20 - 8 = $result"
+
+      - name: Verify /multiply endpoint
+        run: |
+          response=$(curl -fsS -X POST http://localhost:5000/multiply \
+            -H "Content-Type: application/json" \
+            -d '{"a": 7, "b": 6}')
+          echo "POST /multiply (7*6): $response"
+          result=$(echo "$response" | python3 -c "import sys,json; print(json.load(sys.stdin)['result'])")
+          if [ "$result" != "42" ] && [ "$result" != "42.0" ]; then
+            echo "::error::Oczekiwano 42, otrzymano $result"
+            exit 1
+          fi
+          echo "OK: 7 * 6 = $result"
+
+      - name: Verify /divide endpoint
+        run: |
+          response=$(curl -fsS -X POST http://localhost:5000/divide \
+            -H "Content-Type: application/json" \
+            -d '{"a": 15, "b": 3}')
+          echo "POST /divide (15/3): $response"
+          result=$(echo "$response" | python3 -c "import sys,json; print(json.load(sys.stdin)['result'])")
+          if [ "$result" != "5" ] && [ "$result" != "5.0" ]; then
+            echo "::error::Oczekiwano 5, otrzymano $result"
+            exit 1
+          fi
+          echo "OK: 15 / 3 = $result"
+
+      - name: Verify /divide by zero returns HTTP 400
+        run: |
+          status=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:5000/divide \
+            -H "Content-Type: application/json" \
+            -d '{"a": 5, "b": 0}')
+          echo "POST /divide (5/0): HTTP $status"
+          if [ "$status" != "400" ]; then
+            echo "::error::Dzielenie przez zero powinno zwracać HTTP 400, otrzymano HTTP $status"
+            exit 1
+          fi
+          echo "OK: Dzielenie przez zero zwraca HTTP 400"
+
+      - name: Check report location
+        run: |
+          echo "--- Sprawozdanie ---"
+          echo "Sprawozdanie dla tego laboratorium trafia do zewnętrznego repozytorium:"
+          echo "https://github.com/Tomzonkal/Devops_2026_sprawka w folderze Lab_7/nrIndeksu/"
+          echo "Grading nie weryfikuje zewnętrznego repo — sprawdzane ręcznie przez prowadzącego."
+
+      - name: Summary
+        run: |
+          echo "========================================"
+          echo "Wszystkie testy kalkulatora przeszły pomyślnie!"
+          echo "Folder studenta: ${{ steps.find-app.outputs.app }}"
+          echo "========================================"

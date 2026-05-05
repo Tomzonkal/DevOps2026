@@ -1,5 +1,6 @@
 import threading
 import time
+
 import pytest
 import requests
 
@@ -8,6 +9,7 @@ BASE_URL = "http://localhost:5000"
 
 def start_server():
     import calculator
+
     calculator.app.run(host="0.0.0.0", port=5000)
 
 

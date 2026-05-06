@@ -1,5 +1,5 @@
 
-# W tej sekcji dodajemy nasz nowy model 
+# W tej sekcji dodajemy nasz nowy model
 from flask import Flask, request, jsonify
 from model_0000 import model as model_0000
 from model_123456 import model as model_123456
@@ -36,4 +36,3 @@ def model_123456_input():
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0",debug=True,port=5000)
-

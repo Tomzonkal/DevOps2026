@@ -1,7 +1,7 @@
 # Sprawozdanie – Lab 1
 
-> **Autor:** 123456  
-> **Data:** 2026-03-16  
+> **Autor:** 123456
+> **Data:** 2026-03-16
 > **Repozytorium:** git@github.com:Tomzonkal/DevOps2026.git
 
 ---

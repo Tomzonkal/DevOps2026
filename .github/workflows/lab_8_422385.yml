@@ -1,0 +1,47 @@
+name: Lab 8 CI/CD Pipeline 422385
+
+on:
+  push:
+    branches:
+      - lab_8/new_branch_422385
+
+jobs:
+  build-test-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r Lab_8/app_422385/requirements.txt
+
+      - name: Start application in background
+        run: |
+          python Lab_8/app_422385/app.py &
+          echo "Waiting for app to start..."
+          for i in {1..15}; do
+            curl -s http://localhost:5000/health && break
+            sleep 1
+          done
+
+      - name: Run tests
+        run: python -m pytest Lab_8/app_422385/test_app.py -v
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME_422385 }}
+          password: ${{ secrets.DOCKERHUB_TOKEN_422385 }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: Lab_8/app_422385
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME_422385 }}/lab8-app-422385:latest

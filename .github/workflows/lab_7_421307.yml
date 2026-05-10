@@ -3,7 +3,7 @@ name: CI
 on:
   push:
     branches:
-      - main
+      - lab_7/new_branch_421307
 
 jobs:
   test:
@@ -23,5 +23,5 @@ jobs:
 
       - name: Run tests
         run: |
-          cd Lab_7/app_nrIndeksu
+          cd Lab_7/app_421307
           python -m pytest test_calculator.py -v

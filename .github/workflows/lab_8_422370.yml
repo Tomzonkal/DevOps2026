@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - lab_8/new_branch_123456
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Krok 1: Checkout kodu repozytorium
+      - name: Checkout code
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        uses: actions/checkout@v4
+
+      # Krok 2: Konfiguracja Python 3.11
+      - name: Set up Python
+        uses: actions/setup-python@v5
+
+        uses: docker/login-action@v3
+      # Krok 3: Instalacja zależności
+        run: |
+          pip install -r Lab_8/app_123456/requirements.txt
+      # Krok 4: Uruchomienie testów
+      - name: Run tests
+        run: |
+          cd Lab_8/app_123456
+          python -m pytest test_app.py -v
+
+      # Krok 5: Logowanie do Docker Hub
+      - name: Log in to Docker Hub
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME_123456 }}
+          password: ${{ secrets.DOCKERHUB_TOKEN_123456 }}
+
+      # Krok 6: Budowanie i wysyłanie obrazu Docker
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: Lab_8/app_123456
+          push: true
+          tags: eximea/lab8-app-123456:latest

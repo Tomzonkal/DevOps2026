@@ -23,7 +23,7 @@ cp .\app_0000\.env.example .\app_422379\.env
 
 Zrzut ekranu z przygotowania katalogu:
 
-![Przygotowanie katalogu aplikacji](screenshots/screen-01.png)
+![Przygotowanie katalogu aplikacji](app_422379/screenshots/screen-01.png)
 
 ## 3. Pierwsze uruchomienie i zaobserwowane błędy
 
@@ -63,11 +63,11 @@ Ten wpis nie był informacją techniczną o działaniu aplikacji. Został potrak
 
 Zrzuty ekranów, pokazujące wykonane kroki uruchamiania i sprawdzania aplikacji:
 
-![Zrzut ekranu z etapu pierwszego uruchomienia](screenshots/screen-03.png)
+![Zrzut ekranu z etapu pierwszego uruchomienia](app_422379/screenshots/screen-03.png)
 
-![Zrzut ekranu z etapu analizy działania aplikacji](screenshots/screen-04.png)
+![Zrzut ekranu z etapu analizy działania aplikacji](app_422379/screenshots/screen-04.png)
 
-![Zrzut ekranu z etapu sprawdzania stanu aplikacji](screenshots/screen-05.png)
+![Zrzut ekranu z etapu sprawdzania stanu aplikacji](app_422379/screenshots/screen-05.png)
 
 ## 4. Diagnoza LLM i naprawa `docker-compose.yml`
 
@@ -340,7 +340,7 @@ Po usunięciu starego wolumenu baza uruchomiła się poprawnie, backend połącz
 
 Zrzut ekranu po ponownym uruchomieniu i sprawdzaniu aplikacji:
 
-![Zrzut ekranu po ponownym uruchomieniu aplikacji](screenshots/screen-06.png)
+![Zrzut ekranu po ponownym uruchomieniu aplikacji](app_422379/screenshots/screen-06.png)
 
 ## 11. Weryfikacja działania z kroku 6
 
@@ -379,9 +379,9 @@ Content           : <!DOCTYPE html>
 Zrzuty ekranu potwierdzające dostępność frontendu:
 
 
-![Dalsza część odpowiedzi frontendu](screenshots/screen-07.png)
+![Dalsza część odpowiedzi frontendu](app_422379/screenshots/screen-07.png)
 
-![Pełniejszy wynik odpowiedzi frontendu](screenshots/screen-08.png)
+![Pełniejszy wynik odpowiedzi frontendu](app_422379/screenshots/screen-08.png)
 
 ### 11.3 Sprawdzenie endpointu `/items` przed dodaniem danych
 
@@ -399,7 +399,7 @@ Wynik:
 
 Zrzut ekranu:
 
-![Pusta lista elementów](screenshots/screen-09.png)
+![Pusta lista elementów](app_422379/screenshots/screen-09.png)
 
 ## 12. Weryfikacja persystencji danych z kroku 7
 
@@ -431,7 +431,7 @@ Wynik:
 
 Zrzut ekranu:
 
-![Lista elementów po dodaniu danych](screenshots/screen-10.png)
+![Lista elementów po dodaniu danych](app_422379/screenshots/screen-10.png)
 
 ### 12.2 Sprawdzenie danych po restarcie kontenerów
 
@@ -456,7 +456,7 @@ Wynik po restarcie:
 
 Zrzut ekranu:
 
-![Lista elementów po restarcie kontenerów](screenshots/screen-11.png)
+![Lista elementów po restarcie kontenerów](app_422379/screenshots/screen-11.png)
 
 Wniosek: dane przetrwały restart, więc named volume działa poprawnie.
 
@@ -478,7 +478,7 @@ Wynik:
 
 Zrzut ekranu:
 
-![Pusta lista po usunięciu wolumenu](screenshots/screen-12.png)
+![Pusta lista po usunięciu wolumenu](app_422379/screenshots/screen-12.png)
 
 Wniosek: po usunięciu wolumenu baza została zainicjalizowana od nowa i nie zawierała wcześniejszych danych.
 
@@ -492,3 +492,88 @@ W ramach zadania znaleziono i naprawiono 4 błędy w pliku `docker-compose.yml`:
 4. Poprawiono montowanie wolumenu PostgreSQL na `/var/lib/postgresql/data`.
 
 Po poprawkach aplikacja uruchamia się poprawnie, backend odpowiada na `/health`, frontend jest dostępny na porcie `80`, endpoint `/items` działa, a dane zapisane w PostgreSQL przetrwały restart kontenerów.
+
+## 14. Tematy dodatkowe na podwyższenie oceny
+
+### 14.1 Docker network `bridge` a `host`
+
+Sieć `bridge` jest domyślnym typem sieci używanym przez kontenery Dockera. Każdy kontener dostaje własny adres IP w prywatnej sieci Dockera, a komunikacja między kontenerami odbywa się przez tę sieć. W Docker Compose kontenery w tej samej sieci `bridge` mogą komunikować się po nazwach usług, np. backend może połączyć się z bazą przez adres `db:5432`.
+
+Przykład z tego projektu:
+
+```yaml
+networks:
+  app_network:
+    driver: bridge
+  db_network:
+    driver: bridge
+```
+
+Sieć `bridge` warto stosować w typowych aplikacjach wielokontenerowych, ponieważ izoluje kontenery od hosta i pozwala jasno kontrolować, które usługi mogą się ze sobą komunikować. W tym projekcie frontend i backend są w sieci `app_network`, a backend i baza w sieci `db_network`.
+
+Sieć `host` działa inaczej. Kontener nie dostaje oddzielnej przestrzeni sieciowej, tylko korzysta bezpośrednio ze stosu sieciowego hosta. Oznacza to, że aplikacja działająca w kontenerze używa portów hosta bez mapowania w stylu `5000:5000`.
+
+`host` może być użyteczny, gdy potrzebna jest maksymalna wydajność sieciowa albo aplikacja musi korzystać bezpośrednio z interfejsów sieciowych hosta. Nie jest to jednak dobry wybór dla standardowych aplikacji Compose, ponieważ zmniejsza izolację, zwiększa ryzyko konfliktów portów i utrudnia przenoszenie konfiguracji między środowiskami. W tym laboratorium poprawnym wyborem jest `bridge`.
+
+### 14.2 Named volume a bind mount
+
+Named volume to wolumen zarządzany przez Dockera. Ma własną nazwę i jest przechowywany w lokalizacji kontrolowanej przez Docker Engine. Użytkownik nie musi wskazywać konkretnej ścieżki na dysku hosta.
+
+Przykład z tego projektu:
+
+```yaml
+services:
+  db:
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
+```
+
+Named volume jest dobrym rozwiązaniem dla danych aplikacyjnych, które mają przetrwać restart lub usunięcie kontenera. W tym projekcie named volume `postgres_data` przechowuje dane PostgreSQL. Dzięki temu po wykonaniu `docker compose down` dane zostają zachowane, a po `docker compose down -v` wolumen jest usuwany i baza startuje od pustego stanu.
+
+Bind mount polega na podpięciu konkretnego katalogu lub pliku z hosta do kontenera. Przykład:
+
+```yaml
+volumes:
+  - ./backend:/app
+```
+
+Bind mount jest przydatny głównie podczas developmentu, gdy chcemy edytować pliki na hoście i od razu widzieć zmiany w kontenerze. Daje większą kontrolę nad lokalizacją plików, ale jest bardziej zależny od struktury katalogów na komputerze użytkownika. Może też powodować problemy z uprawnieniami lub różnicami między systemami operacyjnymi.
+
+Podsumowanie:
+
+- named volume najlepiej pasuje do trwałych danych aplikacji, np. baz danych,
+- bind mount najlepiej pasuje do pracy developerskiej na kodzie źródłowym lub konfiguracji,
+- w tym projekcie dla PostgreSQL poprawnym wyborem jest named volume.
+
+### 14.3 `HEALTHCHECK` i `depends_on: condition: service_healthy`
+
+Dyrektywa `HEALTHCHECK` w Dockerfile albo sekcja `healthcheck` w Docker Compose służy do sprawdzania, czy kontener nie tylko działa jako proces, ale czy usługa wewnątrz kontenera jest faktycznie gotowa do użycia.
+
+W tym projekcie healthcheck bazy danych wygląda tak:
+
+```yaml
+db:
+  healthcheck:
+    test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+    interval: 5s
+    timeout: 5s
+    retries: 5
+```
+
+Samo uruchomienie kontenera PostgreSQL nie oznacza jeszcze, że baza jest gotowa do przyjmowania połączeń. Podczas startu PostgreSQL inicjalizuje katalog danych, tworzy bazę i dopiero później zaczyna obsługiwać połączenia. `pg_isready` sprawdza, czy baza jest już gotowa.
+
+Integracja z backendem odbywa się przez:
+
+```yaml
+backend:
+  depends_on:
+    db:
+      condition: service_healthy
+```
+
+Dzięki temu Docker Compose uruchamia backend dopiero wtedy, gdy kontener `db` otrzyma status `healthy`. To rozwiązuje problem zbyt wczesnego startu backendu, który wcześniej próbował połączyć się z bazą podczas jej inicjalizacji.
+
+Technicznie `depends_on` bez warunku kontroluje głównie kolejność startu kontenerów, ale nie gwarantuje gotowości aplikacji wewnątrz kontenera. Dopiero `condition: service_healthy` łączy zależność między usługami z wynikiem healthchecka. Jest to szczególnie ważne dla baz danych, brokerów wiadomości i innych usług, które potrzebują czasu na pełny start.

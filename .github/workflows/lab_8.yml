@@ -22,7 +22,7 @@ jobs:
         run: |
           base_sha="${{ github.event.pull_request.base.sha }}"
           git fetch --depth=1 origin "$base_sha"
-          mapfile -t apps < <(git diff --name-only "${base_sha}...HEAD" \
+          mapfile -t apps < <(git diff --name-only FETCH_HEAD HEAD \
             | grep -oE 'Lab_8/app_[0-9]+' \
             | sort -u \
             | grep -v 'app_0000')

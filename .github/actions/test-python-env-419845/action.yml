@@ -40,7 +40,7 @@ runs:
         done
 
     - name: Run tests
-       shell: bash # <- TODO: dodaj wymagane pole shell: dla tego kroku (composite actions wymagaja jawnego shella)
+      shell: bash # <- TODO: dodaj wymagane pole shell: dla tego kroku (composite actions wymagaja jawnego shella)
       run: python -m pytest ${{ inputs.app-path }}/test_app.py -v  # <- TODO: wstaw wyrazenie ${{ inputs.XXX }}
 
     - name: Stop server

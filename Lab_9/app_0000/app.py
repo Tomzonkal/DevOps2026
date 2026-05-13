@@ -1,19 +1,19 @@
-from flask import Flask, request, jsonify
+from flask import Flask, jsonify, request
 
 app = Flask(__name__)
 
 
-@app.route('/health', methods=['GET'])
+@app.route("/health", methods=["GET"])
 def health():
     return jsonify({"status": "ok"})
 
 
-@app.route('/fibonacci', methods=['POST'])
+@app.route("/fibonacci", methods=["POST"])
 def fibonacci():
     data = request.get_json()
-    if not data or 'n' not in data:
+    if not data or "n" not in data:
         return jsonify({"error": "Missing field 'n'"}), 400
-    n = data['n']
+    n = data["n"]
     if not isinstance(n, int) or isinstance(n, bool) or n < 0:
         return jsonify({"error": "'n' must be a non-negative integer"}), 400
     if n == 0:
@@ -24,33 +24,33 @@ def fibonacci():
     return jsonify({"result": b})
 
 
-@app.route('/is-prime', methods=['POST'])
+@app.route("/is-prime", methods=["POST"])
 def is_prime():
     data = request.get_json()
-    if not data or 'n' not in data:
+    if not data or "n" not in data:
         return jsonify({"error": "Missing field 'n'"}), 400
-    n = data['n']
+    n = data["n"]
     if not isinstance(n, int) or isinstance(n, bool):
         return jsonify({"error": "'n' must be an integer"}), 400
     if n < 2:
         return jsonify({"is_prime": False})
-    for i in range(2, int(n ** 0.5) + 1):
+    for i in range(2, int(n**0.5) + 1):
         if n % i == 0:
             return jsonify({"is_prime": False})
     return jsonify({"is_prime": True})
 
 
-@app.route('/sum-digits', methods=['POST'])
+@app.route("/sum-digits", methods=["POST"])
 def sum_digits():
     data = request.get_json()
-    if not data or 'number' not in data:
+    if not data or "number" not in data:
         return jsonify({"error": "Missing field 'number'"}), 400
-    number = data['number']
+    number = data["number"]
     if not isinstance(number, int) or isinstance(number, bool):
         return jsonify({"error": "'number' must be an integer"}), 400
     result = sum(int(d) for d in str(abs(number)))
     return jsonify({"result": result})
 
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000)

@@ -1,10 +1,11 @@
-import requests
 import pytest
+import requests
 
 BASE_URL = "http://localhost:5000"
 
 
 # --- /health ---
+
 
 def test_health():
     r = requests.get(f"{BASE_URL}/health")
@@ -13,6 +14,7 @@ def test_health():
 
 
 # --- /fibonacci ---
+
 
 def test_fibonacci_zero():
     r = requests.post(f"{BASE_URL}/fibonacci", json={"n": 0})
@@ -44,6 +46,7 @@ def test_fibonacci_negative():
 
 # --- /is-prime ---
 
+
 def test_is_prime_seven():
     r = requests.post(f"{BASE_URL}/is-prime", json={"n": 7})
     assert r.status_code == 200
@@ -74,6 +77,7 @@ def test_is_prime_missing_field():
 
 
 # --- /sum-digits ---
+
 
 def test_sum_digits_basic():
     r = requests.post(f"{BASE_URL}/sum-digits", json={"number": 123})

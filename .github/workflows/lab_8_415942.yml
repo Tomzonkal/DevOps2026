@@ -33,7 +33,7 @@ jobs:
           
           # Pętla odpytująca endpoint /health co 1 sekundę
           echo "Czekam na uruchomienie aplikacji na localhost:5000..."
-          while ! curl -s http://localhost:5000/health | grep -q '"status": "ok"'; do
+          while ! curl -s http://localhost:5000/health | grep -q "ok"; do
             sleep 1
           done
           echo "Aplikacja jest gotowa!"
@@ -46,8 +46,8 @@ jobs:
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          username: ${{ secrets.DOCKERHUB_USERNAME_415942 }}
+          password: ${{ secrets.DOCKERHUB_TOKEN_415942 }}
 
       # 7. Budowanie i wysyłanie obrazu Docker
       - name: Build and push Docker image
@@ -55,4 +55,4 @@ jobs:
         with:
           context: Lab_8/app_415942
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/lab8-app-415942:latest
+          tags: ${{ secrets.DOCKERHUB_USERNAME_415942 }}/lab8-app-415942:latest

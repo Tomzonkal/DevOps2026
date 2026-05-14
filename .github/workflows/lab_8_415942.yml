@@ -1,0 +1,58 @@
+name: Lab 8 CI/CD
+
+# Uruchamia się na zdarzenie push tylko na określonym feature branchu
+on:
+  push:
+    branches:
+      - 'lab_8/new_branch_415942'
+
+jobs:
+  build-test-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout kodu repozytorium
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Konfiguracja Python 3.11
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # 3. Instalacja zależności
+      - name: Install dependencies
+        run: pip install -r Lab_8/app_415942/requirements.txt
+
+      # 4. Uruchomienie aplikacji w tle i pętla health-check
+      - name: Run app and wait for health-check
+        run: |
+          # Uruchomienie w tle (znak &)
+          python Lab_8/app_415942/app.py &
+          
+          # Pętla odpytująca endpoint /health co 1 sekundę
+          echo "Czekam na uruchomienie aplikacji na localhost:5000..."
+          while ! curl -s http://localhost:5000/health | grep -q '"status": "ok"'; do
+            sleep 1
+          done
+          echo "Aplikacja jest gotowa!"
+
+      # 5. Uruchomienie testów
+      - name: Run pytest
+        run: python -m pytest Lab_8/app_415942/test_app.py -v
+
+      # 6. Logowanie do Docker Hub
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # 7. Budowanie i wysyłanie obrazu Docker
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: Lab_8/app_415942
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/lab8-app-415942:latest

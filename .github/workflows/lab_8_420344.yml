@@ -58,4 +58,4 @@ jobs:
         with:
           context: Lab_8/app_420344
           push: true
-          tags: ghcr.io/tomzonka1/lab8-app-420344:latest
+          tags: ghcr.io/tomzonkal/lab8-app-420344:latest

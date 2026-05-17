@@ -88,6 +88,6 @@ resource "azurerm_role_assignment" "vm_sa_blob_reader" {
 # Wskazowka: principal_id to azurerm_linux_virtual_machine.vm.identity[0].principal_id
 resource "azurerm_role_assignment" "vm_acr_push" {
   scope                = azurerm_container_registry.acr.id
-  role_definition_name = "" # ← TODO: wybierz minimalna role umozliwiajaca docker push
-  principal_id         = "" # ← TODO
+  role_definition_name = "AcrPush"
+  principal_id         = azurerm_linux_virtual_machine.vm.identity[0].principal_id
 }

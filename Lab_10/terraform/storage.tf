@@ -12,7 +12,7 @@ resource "azurerm_storage_account" "sa" {
     # rejestrowal subnet jako zaufana siec (service endpoint).
     # Wskazowka: uzyj azurerm_subnet.subnet.id
     #
-    virtual_network_subnet_ids = [] # ← TODO
+    virtual_network_subnet_ids = [azurerm_subnet.subnet.id]
 
     bypass = ["AzureServices", "Logging", "Metrics"]
   }

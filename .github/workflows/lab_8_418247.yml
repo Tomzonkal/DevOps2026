@@ -48,8 +48,8 @@ jobs:
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          username: ${{ secrets.DOCKERHUB_USERNAME_418247 }}
+          password: ${{ secrets.DOCKERHUB_TOKEN_418247 }}
 
       # 7
       - name: Build and push Docker image
@@ -57,4 +57,4 @@ jobs:
         with:
           context: Lab_8/app_418247
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/lab8-app-418247:latest
+          tags: ${{ secrets.DOCKERHUB_USERNAME_418247 }}/lab8-app-418247:latest

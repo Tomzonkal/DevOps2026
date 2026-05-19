@@ -1,23 +1,6 @@
-import threading
-import time
-
-import pytest
 import requests
 
 BASE_URL = "http://localhost:5000"
-
-
-def start_server():
-    import app
-
-    app.app.run(host="0.0.0.0", port=5000)
-
-
-@pytest.fixture(scope="session", autouse=True)
-def server():
-    t = threading.Thread(target=start_server, daemon=True)
-    t.start()
-    time.sleep(1)
 
 
 def test_health():
@@ -65,4 +48,14 @@ def test_word_count_multiple_spaces():
 def test_reverse_numbers():
     r = requests.post(f"{BASE_URL}/reverse", json={"text": "12345"})
     assert r.status_code == 200
-    ass
+    assert r.json()["result"] == "54321"
+
+
+def test_missing_field():
+    r = requests.post(f"{BASE_URL}/uppercase", json={})
+    assert r.status_code == 400
+
+
+def test_invalid_type():
+    r = requests.post(f"{BASE_URL}/uppercase", json={"text": 123})
+    assert r.status_code == 400

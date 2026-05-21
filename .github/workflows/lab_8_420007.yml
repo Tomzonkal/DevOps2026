@@ -57,4 +57,4 @@ jobs:
         with:
           context: Lab_8/app_420007
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/lab8-app-420007:latest
+          tags:  gwojciik/lab8-app-420007:latest

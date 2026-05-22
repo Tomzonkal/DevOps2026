@@ -21,7 +21,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install flask requests pytest  
+          pip install -r Lab_7/app_419845/requirements.txt
 
       - name: Run tests
         run: |

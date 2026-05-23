@@ -4,5 +4,9 @@ __pycache__/
 *.pyd
 .pytest_cache/
 .env
+<<<<<<< HEAD
 Lab_3/env_419912/ 
 Lab_5/screeny/ 
+=======
+Claude.MD
+>>>>>>> db7babd8be0873f49b1e1a9c4c90f826fde2214b

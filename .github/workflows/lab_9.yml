@@ -1,0 +1,303 @@
+name: lab_9_github_actions
+
+on:
+  pull_request:
+    branches:
+      - TEST
+      - main
+    paths:
+      - 'Lab_9/app_*/**'
+      - '.github/actions/test-python-env-*/**'
+      - '.github/workflows/lab_9_*.yml'
+
+jobs:
+  validate:
+    name: Weryfikacja Composite Action i Matrix Workflow
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Find student app directory
+        id: find-app
+        run: |
+          base_sha="${{ github.event.pull_request.base.sha }}"
+          git fetch --depth=1 origin "$base_sha"
+          mapfile -t apps < <(git diff --name-only FETCH_HEAD HEAD \
+            | grep -oE 'Lab_9/app_[0-9]+' \
+            | sort -u \
+            | grep -v 'app_0000')
+          if [ "${#apps[@]}" -eq 0 ]; then
+            echo "::error::Nie znaleziono folderu app_NNNNN w zmianach PR — utwórz folder z numerem indeksu (np. app_123456)"
+            exit 1
+          fi
+          if [ "${#apps[@]}" -gt 1 ]; then
+            echo "::error::Znaleziono więcej niż jeden folder studenta w PR: ${apps[*]} — zostaw tylko jeden folder app_nrIndeksu"
+            exit 1
+          fi
+          app="${apps[0]}"
+          index=$(basename "$app" | sed 's/app_//')
+          echo "app=$app" >> $GITHUB_OUTPUT
+          echo "index=$index" >> $GITHUB_OUTPUT
+          echo "Znaleziono folder studenta: $app (indeks: $index)"
+
+      - name: Check required files exist
+        run: |
+          app="${{ steps.find-app.outputs.app }}"
+          for f in app.py requirements.txt test_app.py; do
+            if [ ! -f "$app/$f" ]; then
+              echo "::error::Brak pliku $f w $app"
+              exit 1
+            fi
+            echo "OK: $f istnieje"
+          done
+
+      - name: Check composite action exists
+        id: find-action
+        run: |
+          index="${{ steps.find-app.outputs.index }}"
+          action_dir=".github/actions/test-python-env-${index}"
+          action_file="${action_dir}/action.yml"
+
+          if [ ! -f "$action_file" ]; then
+            echo "::error::Brak pliku composite action: $action_file"
+            echo "::error::Utwórz folder .github/actions/test-python-env-${index}/ i umieść w nim action.yml zgodnie z krokiem 6 instrukcji"
+            exit 1
+          fi
+          echo "OK: Znaleziono composite action: $action_file"
+          echo "action_file=$action_file" >> $GITHUB_OUTPUT
+          echo "action_dir=$action_dir" >> $GITHUB_OUTPUT
+
+      - name: Validate composite action structure
+        run: |
+          python3 - <<PYEOF
+          import sys, yaml
+
+          action_file = "${{ steps.find-action.outputs.action_file }}"
+          with open(action_file) as f:
+              data = yaml.safe_load(f)
+
+          failed = False
+
+          # using: composite
+          runs = data.get("runs", {}) or {}
+          using = runs.get("using", "")
+          if using != "composite":
+              print(f"::error::Pole 'runs.using' musi miec wartosc 'composite', znaleziono: '{using}'")
+              failed = True
+          else:
+              print("OK: using: composite obecne")
+
+          # inputs z python-version
+          inputs = data.get("inputs", {}) or {}
+          if "python-version" not in inputs:
+              print("::error::Brak inputu 'python-version' w sekcji inputs: composite action — dodaj go zgodnie z krokiem 6 instrukcji")
+              failed = True
+          else:
+              print("OK: input 'python-version' obecny")
+
+          # inputs z app-path
+          if "app-path" not in inputs:
+              print("::error::Brak inputu 'app-path' w sekcji inputs: composite action — dodaj go zgodnie z krokiem 6 instrukcji")
+              failed = True
+          else:
+              print("OK: input 'app-path' obecny")
+
+          # sprawdz czy kazdy krok run ma shell
+          steps = runs.get("steps", []) or []
+          for i, step in enumerate(steps):
+              if "run" in step and "shell" not in step:
+                  name = step.get("name", f"krok #{i+1}")
+                  print(f"::error::Krok '{name}' ma pole 'run:' ale brak 'shell: bash' — composite actions wymagaja jawnego shella dla kazdego kroku run")
+                  failed = True
+
+          if not failed:
+              print("OK: Wszystkie kroki run maja pole shell:")
+
+          # sprawdz czy nie ma UZUPELNIJ
+          with open(action_file) as f:
+              raw = f.read()
+          if "UZUPELNIJ" in raw:
+              print("::error::Plik action.yml zawiera niezastapiony placeholder 'UZUPELNIJ' — uzupelnij wszystkie miejsca TODO zgodnie z krokiem 6.3 instrukcji")
+              failed = True
+          else:
+              print("OK: Brak niezastapionego placeholdera UZUPELNIJ")
+
+          sys.exit(1 if failed else 0)
+          PYEOF
+
+      - name: Check matrix workflow exists
+        id: find-workflow
+        run: |
+          index="${{ steps.find-app.outputs.index }}"
+          wf=".github/workflows/lab_9_${index}.yml"
+
+          if [ ! -f "$wf" ]; then
+            echo "::error::Brak pliku workflow studenta: $wf"
+            echo "::error::Stwórz plik .github/workflows/lab_9_${index}.yml zgodnie z krokiem 7 instrukcji"
+            exit 1
+          fi
+          echo "OK: Znaleziono workflow studenta: $wf"
+          echo "workflow=$wf" >> $GITHUB_OUTPUT
+
+      - name: Validate matrix workflow structure
+        run: |
+          python3 - <<PYEOF
+          import sys, yaml, re
+
+          wf_file = "${{ steps.find-workflow.outputs.workflow }}"
+          index = "${{ steps.find-app.outputs.index }}"
+
+          with open(wf_file) as f:
+              content = f.read()
+              f.seek(0)
+              wf_data = yaml.safe_load(f)
+
+          failed = False
+
+          # Sprawdz matrix strategy
+          jobs = wf_data.get("jobs", {}) or {}
+          has_matrix = False
+          for job_name, job in jobs.items():
+              strategy = job.get("strategy", {}) or {}
+              matrix = strategy.get("matrix", {}) or {}
+              if "python-version" in matrix:
+                  versions = matrix["python-version"]
+                  if not isinstance(versions, list) or len(versions) < 2:
+                      print(f"::error::Matrix 'python-version' musi zawierac co najmniej 2 wersje, znaleziono: {versions}")
+                      failed = True
+                  else:
+                      has_matrix = True
+                      print(f"OK: Matrix strategy z python-version: {versions}")
+                  break
+
+          if not has_matrix and not failed:
+              print("::error::Brak matrix strategy z 'python-version' w workflow — dodaj sekcje 'strategy.matrix' zgodnie z krokiem 7.2 instrukcji")
+              failed = True
+
+          # Sprawdz uzycie lokalnej composite action
+          action_ref = f"./.github/actions/test-python-env-{index}"
+          if action_ref not in content:
+              print(f"::error::Workflow nie wywoluje composite action '{action_ref}' — sprawdz pole 'uses:' w kroku wywolania akcji (krok 7.2 instrukcji)")
+              print(f"::error::Uwaga: sciezka musi zaczynac sie od './' i zawierac Twoj numer indeksu: {index}")
+              failed = True
+          else:
+              print(f"OK: Znaleziono wywolanie composite action: {action_ref}")
+
+          # Sprawdz trigger branches — czy nie jest tylko 'main'
+          on_section = wf_data.get(True, {}) or {}
+          push_cfg = on_section.get("push", {}) or {}
+          branches = push_cfg.get("branches", [])
+          if isinstance(branches, str):
+              branches = [branches]
+          if branches == ["main"]:
+              print("::warning::Workflow triggeruje sie tylko na 'main' — zalecanym podejsciem jest ustawienie wlasnego feature brancha")
+          elif branches:
+              print(f"OK: Trigger branches: {branches}")
+
+          sys.exit(1 if failed else 0)
+          PYEOF
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r "${{ steps.find-app.outputs.app }}/requirements.txt"
+
+      - name: Start application server
+        run: |
+          python "${{ steps.find-app.outputs.app }}/app.py" &
+          echo "Czekam na uruchomienie serwera..."
+          for i in {1..30}; do
+            if curl -fsS http://localhost:5000/health > /dev/null 2>&1; then
+              echo "Serwer gotowy po $i sekundach"
+              break
+            fi
+            if [ "$i" -eq 30 ]; then
+              echo "::error::Serwer nie uruchomil sie w ciagu 30 sekund"
+              exit 1
+            fi
+            sleep 1
+          done
+
+      - name: Run student tests
+        timeout-minutes: 5
+        run: |
+          cd "${{ steps.find-app.outputs.app }}"
+          python -m pytest test_app.py -v
+
+      - name: Verify /fibonacci endpoint
+        run: |
+          response=$(curl -fsS -X POST http://localhost:5000/fibonacci \
+            -H "Content-Type: application/json" \
+            -d '{"n": 10}')
+          echo "POST /fibonacci (n=10): $response"
+          result=$(echo "$response" | python3 -c "import sys,json; print(json.load(sys.stdin)['result'])")
+          if [ "$result" != "55" ]; then
+            echo "::error::Oczekiwano 55 (fibonacci(10)), otrzymano '$result'"
+            exit 1
+          fi
+          echo "OK: fibonacci(10) = $result"
+
+      - name: Verify /is-prime endpoint
+        run: |
+          response=$(curl -fsS -X POST http://localhost:5000/is-prime \
+            -H "Content-Type: application/json" \
+            -d '{"n": 7}')
+          echo "POST /is-prime (n=7): $response"
+          result=$(echo "$response" | python3 -c "import sys,json; print(json.load(sys.stdin)['is_prime'])")
+          if [ "$result" != "True" ]; then
+            echo "::error::Oczekiwano True (7 jest pierwsza), otrzymano '$result'"
+            exit 1
+          fi
+          echo "OK: is_prime(7) = $result"
+
+      - name: Verify /sum-digits endpoint
+        run: |
+          response=$(curl -fsS -X POST http://localhost:5000/sum-digits \
+            -H "Content-Type: application/json" \
+            -d '{"number": 123}')
+          echo "POST /sum-digits (number=123): $response"
+          result=$(echo "$response" | python3 -c "import sys,json; print(json.load(sys.stdin)['result'])")
+          if [ "$result" != "6" ]; then
+            echo "::error::Oczekiwano 6 (1+2+3), otrzymano '$result'"
+            exit 1
+          fi
+          echo "OK: sum_digits(123) = $result"
+
+      - name: Verify error handling (missing field returns HTTP 400)
+        run: |
+          status=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:5000/fibonacci \
+            -H "Content-Type: application/json" \
+            -d '{}')
+          echo "POST /fibonacci (brak pola n): HTTP $status"
+          if [ "$status" != "400" ]; then
+            echo "::error::Brakujace pole 'n' powinno zwracac HTTP 400, otrzymano HTTP $status"
+            exit 1
+          fi
+          echo "OK: Brakujace pole zwraca HTTP 400"
+
+      - name: Stop server
+        if: always()
+        run: pkill -f "python.*app.py" || true
+
+      - name: Check report location
+        run: |
+          echo "--- Sprawozdanie ---"
+          echo "Sprawozdanie dla tego laboratorium trafia do zewnetrznego repozytorium:"
+          echo "https://github.com/Tomzonkal/Devops_2026_sprawka w folderze Lab_9/nrIndeksu/"
+          echo "Grading nie weryfikuje zewnetrznego repo — sprawdzane recznie przez prowadzacego."
+
+      - name: Summary
+        run: |
+          echo "========================================"
+          echo "Wszystkie weryfikacje przeszly pomyslnie!"
+          echo "Folder studenta: ${{ steps.find-app.outputs.app }}"
+          echo "Composite action: .github/actions/test-python-env-${{ steps.find-app.outputs.index }}/action.yml"
+          echo "Matrix workflow: .github/workflows/lab_9_${{ steps.find-app.outputs.index }}.yml"
+          echo "========================================"

@@ -34,12 +34,12 @@ jobs:
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          username: ${{ secrets.DOCKERHUB_USERNAME_422380 }}
+          password: ${{ secrets.DOCKERHUB_TOKEN_422380 }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:
           context: Lab_8/app_422380
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/lab8-app-422380:latest
+          tags: ${{ secrets.DOCKERHUB_USERNAME_422380 }}/lab8-app-422380:latest

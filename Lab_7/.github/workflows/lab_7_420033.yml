@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - 'lab_7/new_branch_420033' # BŁĄD 1: Zmienione z main na Twój konkretny branch
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r Lab_7/app_420033/requirements.txt # Instalacja flask, requests, pytest
+
+      - name: Run app and tests
+        run: |
+          cd Lab_7/app_420033 # BŁĄD 2: Poprawiona ścieżka (było app_nrIndeksu)
+          python calculator.py & # Uruchomienie aplikacji w tle
+          sleep 5               # Czekamy 5 sekund aż aplikacja wystartuje
+          python -m pytest test_calculator.py -v

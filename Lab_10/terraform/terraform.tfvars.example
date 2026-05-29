@@ -1,0 +1,7 @@
+# Skopiuj ten plik: cp terraform.tfvars.example terraform.tfvars
+# Nastepnie wypelnij wartosci (NIE commituj terraform.tfvars — jest w .gitignore)
+
+prefix         = "devops123456"        # Twoj numer indeksu, tylko litery i cyfry, max 12 znakow
+location       = "polandcentral"
+admin_username = "azureuser"
+ssh_public_key = "ssh-ed25519 AAAA..."  # Zawartosc ~/.ssh/id_lab10.pub

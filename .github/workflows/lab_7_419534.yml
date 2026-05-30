@@ -1,27 +1,37 @@
-name: CI
+name: lab_7_419534 CI
 
 on:
   push:
     branches:
-      - main
+      - lab_7/new_branch_419534
 
 jobs:
   test:
     runs-on: ubuntu-latest
 
+    defaults:
+      run:
+        working-directory: Lab_7/app_419534
+
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
-      - name: Upgrade pip
-        run: python -m pip install --upgrade pip
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pytest requests
+
+      - name: Start application
+        run: |
+          python calculator.py &
+          sleep 5
 
       - name: Run tests
         run: |
-          cd Lab_7/app_nrIndeksu
           python -m pytest test_calculator.py -v

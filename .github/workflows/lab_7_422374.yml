@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - lab_7/new_branch_422374
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Upgrade pip
+        run: python -m pip install --upgrade pip
+
+      - name: Install dependencies
+        run: pip install -r Lab_7/app_422374/requirements.txt
+
+      - name: Run tests
+        run: |
+          cd Lab_7/app_422374
+          python -m pytest test_calculator.py -v

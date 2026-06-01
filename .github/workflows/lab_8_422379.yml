@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - lab_8/new_branch_422379
+
+jobs:
+  test-build-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r Lab_8/app_422379/requirements.txt
+
+      - name: Start application and wait for health check
+        run: |
+          python Lab_8/app_422379/app.py &
+          for i in {1..30}; do
+            if curl -fsS http://localhost:5000/health; then
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Application did not become ready in time"
+          exit 1
+
+      - name: Run tests
+        run: python -m pytest Lab_8/app_422379/test_app.py -v
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: Lab_8/app_422379
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/lab8-app-422379:latest

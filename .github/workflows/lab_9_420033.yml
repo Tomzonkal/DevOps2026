@@ -1,0 +1,27 @@
+name: CI (matrix) 420033
+
+on:
+  push:
+    branches:
+      - 'lab_9/new_branch_420033'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # Tu definiujemy listę wersji do przetestowania
+        python-version: ['3.9', '3.10', '3.11']
+    
+    name: Test (Python ${{ matrix.python-version }})
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Call Composite Action
+        # Pamiętaj o ./ na początku ścieżki lokalnej!
+        uses: ./.github/actions/test-python-env-420033
+        with:
+          python-version: ${{ matrix.python-version }}
+          app-path: Lab_9/app_420033

@@ -1,0 +1,48 @@
+name: Docker CI_CD Pipeline 420033
+
+on:
+  push:
+    branches:
+      - 'lab_8/new_branch_420033'
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r Lab_8/app_420033/requirements.txt
+
+      - name: Run app in background and Health Check
+        run: |
+          python Lab_8/app_420033/app.py &
+          # Pętla czekająca na gotowość aplikacji
+          for i in {1..10}; do
+            curl -s http://localhost:5000/health && break || sleep 2
+          done
+
+      - name: Run Pytest
+        run: |
+          python -m pytest Lab_8/app_420033/test_app.py -v
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: Lab_8/app_420033
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/lab8-app-420033:latest

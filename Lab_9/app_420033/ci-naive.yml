@@ -1,0 +1,83 @@
+name: CI (naive)
+
+# Podmien nrIndeksu na swoj numer indeksu
+on:
+  push:
+    branches:
+      - lab_9/new_branch_nrIndeksu
+
+jobs:
+  test-python-39:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+
+      - name: Install dependencies
+        run: pip install -r Lab_9/app_nrIndeksu/requirements.txt
+
+      - name: Start server
+        run: |
+          python Lab_9/app_nrIndeksu/app.py &
+          sleep 2
+
+      - name: Run tests
+        run: python -m pytest Lab_9/app_nrIndeksu/test_app.py -v
+
+      - name: Stop server
+        if: always()
+        run: pkill -f "python.*app.py" || true
+
+  test-python-310:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: pip install -r Lab_9/app_nrIndeksu/requirements.txt
+
+      - name: Start server
+        run: |
+          python Lab_9/app_nrIndeksu/app.py &
+          sleep 2
+
+      - name: Run tests
+        run: python -m pytest Lab_9/app_nrIndeksu/test_app.py -v
+
+      - name: Stop server
+        if: always()
+        run: pkill -f "python.*app.py" || true
+
+  test-python-311:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r Lab_9/app_nrIndeksu/requirements.txt
+
+      - name: Start server
+        run: |
+          python Lab_9/app_nrIndeksu/app.py &
+          sleep 2
+
+      - name: Run tests
+        run: python -m pytest Lab_9/app_nrIndeksu/test_app.py -v
+
+      - name: Stop server
+        if: always()
+        run: pkill -f "python.*app.py" || true

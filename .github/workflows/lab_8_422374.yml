@@ -53,4 +53,4 @@ jobs:
         with:
           context: Lab_8/app_422374
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/lab8-app-422374:latest
+          tags: ghcr.io/tomzonkal/lab8-app-422374:latest

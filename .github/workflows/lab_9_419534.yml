@@ -1,0 +1,24 @@
+name: CI (matrix) 419534
+
+on:
+  push:
+    branches:
+      - lab_9/new_branch_419534
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version: ['3.9', '3.10', '3.11']
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Test with Python ${{ matrix.python-version }}
+        uses: ./.github/actions/test-python-env-419534
+        with:
+          python-version: ${{ matrix.python-version }}
+          app-path: Lab_9/app_419534

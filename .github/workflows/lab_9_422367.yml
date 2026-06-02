@@ -19,4 +19,4 @@ jobs:
         uses: ./.github/actions/test-python-env-422367
         with:
           python-version: ${{ matrix.python-version }}
-          app-path: Lab_9/app_422367
+          app-path: ./Lab_9/app_422367

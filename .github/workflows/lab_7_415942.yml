@@ -3,7 +3,7 @@ name: CI
 on:
   push:
     branches:
-      - main
+      - 'lab_7/new_branch_415942'
 
 jobs:
   test:
@@ -25,7 +25,7 @@ jobs:
 
       - name: Run Flask server and execute tests
         run: |
-          cd Lab_7/app_nrIndeksu
+          cd Lab_7/app_415942
           
           # Uruchomienie serwera w tle (znak '&' na końcu)
           python calculator.py &

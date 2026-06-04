@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - lab_8/new_branch_401967
+
+jobs:
+  build-test-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repozytorium
+        uses: actions/checkout@v4
+
+      - name: Konfiguracja Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Instalacja zależności
+        run: pip install -r Lab_8/app_401967/requirements.txt
+
+      - name: Uruchomienie aplikacji w tle
+        run: |
+          python Lab_8/app_401967/app.py &
+          echo "Oczekiwanie na gotowość serwera..."
+          for i in $(seq 1 15); do
+            if curl -sf http://localhost:5000/health > /dev/null; then
+              echo "Serwer gotowy po $i próbie."
+              exit 0
+            fi
+            echo "Próba $i/15 nieudana, czekam 1s..."
+            sleep 1
+          done
+          echo "Serwer nie wystartował w czasie 15 sekund." >&2
+          exit 1
+
+      - name: Uruchomienie testów pytest
+        run: python -m pytest Lab_8/app_401967/test_app.py -v
+
+      - name: Logowanie do Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME_401967 }}
+          password: ${{ secrets.DOCKERHUB_TOKEN_401967 }}
+
+      - name: Budowanie i wysyłanie obrazu Docker
+        uses: docker/build-push-action@v6
+        with:
+          context: Lab_8/app_401967
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/lab8-app-401967:latest

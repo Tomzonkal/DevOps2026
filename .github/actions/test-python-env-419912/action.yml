@@ -19,12 +19,12 @@ runs:
     - name: Install dependencies
       shell: bash
       run: |
-        pip install -r ${{ inputs.app-path }}/requirements.txt
+        pip install -r ${{ github.workspace }}/${{ inputs.app-path }}/requirements.txt
 
     - name: Run app in background and check health
       shell: bash
       run: |
-        python ${{ inputs.app-path }}/app.py &
+        python ${{ github.workspace }}/${{ inputs.app-path }}/app.py &
         echo "Czekam na uruchomienie aplikacji..."
         for i in {1..10}; do
           curl -s http://localhost:5000/health && break
@@ -34,4 +34,4 @@ runs:
     - name: Run tests
       shell: bash
       run: |
-        python -m pytest ${{ inputs.app-path }}/test_app.py -v
+        python -m pytest ${{ github.workspace }}/${{ inputs.app-path }}/test_app.py -v

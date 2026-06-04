@@ -1,0 +1,17 @@
+# Skopiuj jako terraform.tfvars i uzupelnij:
+#   cp terraform.tfvars.example terraform.tfvars
+
+# Twoj unikalny prefiks — ten sam co w Lab_11/terraform/terraform.tfvars
+prefix = "devops123456"
+
+# Region Azure (pozostaw domyslny)
+# location = "polandcentral"
+
+# Twoja nazwa uzytkownika GitHub
+github_org = "JanKowalski"
+
+# Nazwa Twojego forka repozytorium (domyslnie DevOps2026)
+# github_repo = "DevOps2026"
+
+# Nazwa srodowiska GitHub Actions — wpisz swoj numer indeksu (np. 123456)
+github_environment = "123456"

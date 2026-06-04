@@ -1,0 +1,12 @@
+# Terraform state — nie commituj do repozytorium!
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+
+# Plik z wartosciami zmiennych — moze zawierac dane wrazliwe
+terraform.tfvars
+
+# Kubeconfig — nie commituj!
+*.kubeconfig
+kubeconfig

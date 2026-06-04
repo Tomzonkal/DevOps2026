@@ -45,7 +45,7 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME_401967 }}
           password: ${{ secrets.DOCKERHUB_TOKEN_401967 }}
 
-      - name: Budowanie i wysyłanie obrazu Docker
+      - name: Budowanie i wysylanie obrazu Docker
         uses: docker/build-push-action@v6
         with:
           context: Lab_8/app_401967

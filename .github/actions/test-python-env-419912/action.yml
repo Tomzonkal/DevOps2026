@@ -1,0 +1,37 @@
+name: 'Test Python Environment'
+description: 'Composite action to setup Python, install deps and run tests'
+inputs:
+  python-version:
+    description: 'Python version to use'
+    required: true
+  app-path:
+    description: 'Path to the application folder'
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Install dependencies
+      shell: bash
+      run: |
+        pip install -r ${{ inputs.app-path }}/requirements.txt
+
+    - name: Run app in background and check health
+      shell: bash
+      run: |
+        python ${{ inputs.app-path }}/app.py &
+        echo "Czekam na uruchomienie aplikacji..."
+        for i in {1..10}; do
+          curl -s http://localhost:5000/health && break
+          sleep 2
+        done
+
+    - name: Run tests
+      shell: bash
+      run: |
+        python -m pytest ${{ inputs.app-path }}/test_app.py -v

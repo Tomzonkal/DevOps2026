@@ -1,45 +1,47 @@
 name: 'Test Python Environment'
-description: 'Composite action to setup Python, install deps and run tests'
+description: 'Ustawia srodowisko Python, instaluje zaleznosci i uruchamia testy REST API'
 inputs:
   python-version:
-    description: 'Python version to use'
+    description: 'Wersja Pythona do uzycia (np. 3.9, 3.10, 3.11)'
     required: true
   app-path:
-    description: 'Path to the application folder'
+    description: 'Sciezka do folderu aplikacji (np. Lab_9/app_123456)'
     required: true
-
 runs:
-  using: "composite"
+  using: composite   # <- NIE zmieniaj tej linii
   steps:
-    - name: Setup Python
+    - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: ${{ inputs.python-version }}
+        python-version: ${{ inputs.python-version }}  # <- Wstawiono odpowiedni input
 
-    - name: Install dependencies, run app and test
+    - name: Install dependencies
       shell: bash
       run: |
-        # Dynamicznie szukamy folderu bez względu na wielkość liter Lab_9 / lab_9
-        TARGET_DIR=$(find . -iname "app_419912" -type d -print -quit)
-        
-        if [ -z "$TARGET_DIR" ]; then
-          echo "ERROR: Nie znaleziono folderu app_419912!"
-          exit 1
-        fi
-        
-        echo "Znaleziono ścieżkę aplikacji: $TARGET_DIR"
-        cd "$TARGET_DIR"
-        
-        # 1. Instalacja
-        pip install -r requirements.txt
-        
-        # 2. Uruchomienie w tle
-        python app.py &
-        echo "Czekam na uruchomienie aplikacji..."
-        for i in {1..10}; do
-          curl -s http://localhost:5000/health && break
-          sleep 2
+        python -m pip install --upgrade pip
+        pip install -r ${{ inputs.app-path }}/requirements.txt  # <- Wstawiono wyrazenie sciezki do folderu
+
+    - name: Start server
+      shell: bash
+      run: |
+        python ${{ inputs.app-path }}/app.py &  # <- Wstawiono wyrazenie sciezki dla aplikacji
+        for i in $(seq 1 30); do
+          if curl -fsS http://localhost:5000/health > /dev/null 2>&1; then
+            echo "Serwer gotowy po ${i}s"
+            break
+          fi
+          if [ "$i" -eq 30 ]; then
+            echo "::error::Serwer nie uruchomil sie w ciagu 30 sekund"
+            exit 1
+          fi
+          sleep 1
         done
-        
-        # 3. Testy
-        python -m pytest test_app.py -v
+
+    - name: Run tests
+      shell: bash  # <- Dodano wymagane pole shell (wymagane w composite actions)
+      run: python -m pytest ${{ inputs.app-path }}/test_app.py -v  # <- Wstawiono wyrazenie sciezki dla testow
+
+    - name: Stop server
+      if: always()
+      shell: bash
+      run: pkill -f "python.*app.py" || true

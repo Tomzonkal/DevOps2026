@@ -4,7 +4,7 @@ name: CI (naive)
 on:
   push:
     branches:
-      - lab_9/new_branch_nrIndeksu
+      - lab_9/new_branch_419371
 
 jobs:
   test-python-39:
@@ -18,15 +18,15 @@ jobs:
           python-version: '3.9'
 
       - name: Install dependencies
-        run: pip install -r Lab_9/app_nrIndeksu/requirements.txt
+        run: pip install -r Lab_9/app_419371/requirements.txt
 
       - name: Start server
         run: |
-          python Lab_9/app_nrIndeksu/app.py &
+          python Lab_9/app_419371/app.py &
           sleep 2
 
       - name: Run tests
-        run: python -m pytest Lab_9/app_nrIndeksu/test_app.py -v
+        run: python -m pytest Lab_9/app_419371/test_app.py -v
 
       - name: Stop server
         if: always()
@@ -43,15 +43,15 @@ jobs:
           python-version: '3.10'
 
       - name: Install dependencies
-        run: pip install -r Lab_9/app_nrIndeksu/requirements.txt
+        run: pip install -r Lab_9/app_419371/requirements.txt
 
       - name: Start server
         run: |
-          python Lab_9/app_nrIndeksu/app.py &
+          python Lab_9/app_419371/app.py &
           sleep 2
 
       - name: Run tests
-        run: python -m pytest Lab_9/app_nrIndeksu/test_app.py -v
+        run: python -m pytest Lab_9/app_419371/test_app.py -v
 
       - name: Stop server
         if: always()
@@ -68,15 +68,15 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: pip install -r Lab_9/app_nrIndeksu/requirements.txt
+        run: pip install -r Lab_9/app_419371/requirements.txt
 
       - name: Start server
         run: |
-          python Lab_9/app_nrIndeksu/app.py &
+          python Lab_9/app_419371/app.py &
           sleep 2
 
       - name: Run tests
-        run: python -m pytest Lab_9/app_nrIndeksu/test_app.py -v
+        run: python -m pytest Lab_9/app_419371/test_app.py -v
 
       - name: Stop server
         if: always()

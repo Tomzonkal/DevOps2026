@@ -21,6 +21,12 @@ jobs:
       - name: Upgrade pip
         run: python -m pip install --upgrade pip
 
+      - name: Install dependencies
+        run: |
+          cd Lab_7/app_123456
+          python -m pip install -r requirements.txt
+          python -m pip install pytest requests
+
       - name: Run tests
         run: |
           cd Lab_7/app_422368

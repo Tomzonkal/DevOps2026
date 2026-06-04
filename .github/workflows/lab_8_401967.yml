@@ -50,4 +50,4 @@ jobs:
         with:
           context: Lab_8/app_401967
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/lab8-app-401967:latest
+          tags: ${{ secrets.DOCKERHUB_USERNAME_401967 }}/lab8-app-401967:latest

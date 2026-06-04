@@ -1,0 +1,48 @@
+name: Lab 8 CI/CD - 419912
+
+on:
+  push:
+    branches:
+      - 'lab_8/new_branch_419912'
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo kodu
+        uses: actions/checkout@v4
+
+      - name: Konfiguracja Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Instalacja zaleznosci
+        run: |
+          pip install -r Lab_8/app_419912/requirements.txt
+
+      - name: Uruchomienie aplikacji w tle i Health-Check
+        run: |
+          python Lab_8/app_419912/app.py &
+          echo "Czekam na uruchomienie aplikacji..."
+          for i in {1..10}; do
+            curl -s http://localhost:5000/health && break
+            sleep 2
+          done
+
+      - name: Uruchomienie testow pytest
+        run: |
+          python -m pytest Lab_8/app_419912/test_app.py -v
+
+      - name: Logowanie do Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Budowanie i wysylanie obrazu Docker
+        uses: docker/build-push-action@v6
+        with:
+          context: Lab_8/app_419912
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/lab8-app-419912:latest

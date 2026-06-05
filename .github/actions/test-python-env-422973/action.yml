@@ -10,7 +10,7 @@ inputs:
     required: true
 
 runs:
-  using: composite   # <- NIE zmieniaj tej linii
+  using: composite  
   steps:
     - name: Set up Python
       uses: actions/setup-python@v5
@@ -28,7 +28,7 @@ runs:
       run: |
         python ${{ inputs.app-path }}/app.py &
         for i in $(seq 1 30); do
-          if curl -fsS http://localhost:5000/health > /dev/null 2>&1; then
+      if curl -fsS http://localhost:5000/health > /dev/null 2>&1; then;
             echo "Serwer gotowy po ${i}s"
             break
           fi

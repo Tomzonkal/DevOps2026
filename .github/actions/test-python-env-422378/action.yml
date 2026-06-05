@@ -1,0 +1,33 @@
+name: 'Test Python Environment'
+description: 'Setups Python, installs dependencies and runs tests'
+inputs:
+  python-version:
+    description: 'Python version to use'
+    required: true
+  app-path:
+    description: 'Path to the application folder'
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+        
+    - name: Install dependencies
+      shell: bash
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r ${{ inputs.app-path }}/requirements.txt pytest requests
+        
+    - name: Run app in background
+      shell: bash
+      run: |
+        python ${{ inputs.app-path }}/app.py &
+        sleep 3
+        
+    - name: Run tests
+      shell: bash
+      run: |
+        python -m pytest ${{ inputs.app-path }}/test_app.py -v

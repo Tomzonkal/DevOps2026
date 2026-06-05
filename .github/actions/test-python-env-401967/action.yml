@@ -10,7 +10,7 @@ inputs:
     required: true
 
 runs:
-  using: composite   # <- NIE zmieniaj tej linii
+  using: composite
   steps:
     - name: Set up Python
       uses: actions/setup-python@v5
@@ -26,7 +26,8 @@ runs:
     - name: Start server
       shell: bash
       run: |
-        python ${{ inputs.app-path }}/app.py &
+        python ${{ inputs.app-path }}/app.py > /tmp/server.log 2>&1 &
+        echo "PID serwera: $!"
         for i in $(seq 1 30); do
           if curl -fsS http://localhost:5000/health > /dev/null 2>&1; then
             echo "Serwer gotowy po ${i}s"
@@ -34,6 +35,7 @@ runs:
           fi
           if [ "$i" -eq 30 ]; then
             echo "::error::Serwer nie uruchomil sie w ciagu 30 sekund"
+            cat /tmp/server.log
             exit 1
           fi
           sleep 1

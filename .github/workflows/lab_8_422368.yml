@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - 'lab_8/new_branch_422368'
-      -
+
 jobs:
   task:
     runs-on: ubuntu-latest

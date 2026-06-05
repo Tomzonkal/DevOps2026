@@ -25,7 +25,11 @@ runs:
       shell: bash
       run: |
         python ${{ inputs.app-path }}/app.py &
-        sleep 3
+        while ! curl -s http://localhost:5000/health; do
+          echo "Czekam na uruchomienie serwera..."
+          sleep 1
+        done
+        echo "Serwer gotowy do testow!"
         
     - name: Run tests
       shell: bash

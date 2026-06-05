@@ -43,4 +43,4 @@ jobs:
         with:
           context: Lab_8/app_422378
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME_422378 }}/lab8-app-422378:latest
+          tags: kaemiks/lab8-app-422378:latest

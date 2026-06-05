@@ -1,7 +1,7 @@
 import requests
 import pytest
 
-BASE_URL = "http://localhost:5001"
+BASE_URL = "http://localhost:5000"
 
 
 # --- /health ---

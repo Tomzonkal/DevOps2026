@@ -20,5 +20,5 @@ jobs:
       - name: Test with Python ${{ matrix.python-version }}
         uses: ./.github/actions/test-python-env-422368
         with:
-          python-version: ${{ matrix.matrix.python-version }}
+          python-version: ${{ matrix.python-version }}
           app-path: Lab_9/app_422368

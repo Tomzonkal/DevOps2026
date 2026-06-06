@@ -17,15 +17,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-
-      - name: Sprawdz strukture plikow w chmurze
-        run: |
-          echo "=== Zawartosc głównego katalogu ==="
-          ls -la
-          echo "=== Zawartosc katalogu Lab_9 ==="
-          ls -la Lab_9 || ls -la lab_9
-
-
       - name: Test with Python ${{ matrix.python-version }}
         uses: ./.github/actions/test-python-env-422368
         with:

@@ -1,0 +1,60 @@
+name: Lab 8 Docker CI
+
+on:
+  push:
+    branches:
+      - lab_8/new_branch_420067
+
+jobs:
+  test-build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r Lab_8/app_420067/requirements.txt
+          pip install pytest requests
+
+      - name: Start Flask application
+        run: |
+          python Lab_8/app_420067/app.py &
+          sleep 5
+
+      - name: Wait for application health check
+        run: |
+          for i in {1..30}; do
+            if curl -s http://localhost:5000/health | grep -q "ok"; then
+              echo "Application is ready"
+              exit 0
+            fi
+            echo "Waiting for application..."
+            sleep 2
+          done
+          echo "Application did not start correctly"
+          exit 1
+
+      - name: Run pytest tests
+        run: |
+          python -m pytest Lab_8/app_420067/test_app.py -v
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME_420067 }}
+          password: ${{ secrets.DOCKERHUB_TOKEN_420067 }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: Lab_8/app_420067
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME_420067 }}/lab8-app-420067:latest

@@ -1,0 +1,37 @@
+﻿name: Test Python application
+description: Composite action for setting up Python, installing dependencies, starting the app and running tests
+
+inputs:
+  python-version:
+    description: Python version used to run tests
+    required: true
+  app-path:
+    description: Path to the application directory
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Install dependencies
+      shell: bash
+      run: pip install -r ${{ inputs.app-path }}/requirements.txt
+
+    - name: Start server
+      shell: bash
+      run: |
+        python ${{ inputs.app-path }}/app.py &
+        sleep 2
+
+    - name: Run tests
+      shell: bash
+      run: python -m pytest ${{ inputs.app-path }}/test_app.py -v
+
+    - name: Stop server
+      if: always()
+      shell: bash
+      run: pkill -f "python.*app.py" || true

@@ -1,0 +1,40 @@
+name: Projekt CI - Build Test Push
+
+on:
+  push:
+    branches:
+      - project/420007
+      - main
+
+jobs:
+  build-test-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Uruchom testy
+        working-directory: projekt_420007
+        run: |
+          pip install -r requirements.txt
+          pytest
+
+      - name: Zaloguj sie do ACR
+        uses: azure/docker-login@v1
+        with:
+          login-server: ${{ secrets.ACR_LOGIN_SERVER }}
+          username: ${{ secrets.AZURE_CLIENT_ID }}
+          password: ${{ secrets.AZURE_CLIENT_SECRET }}
+
+      - name: Zbuduj i wypchnij obraz
+        working-directory: projekt_420007
+        run: |
+          IMAGE=${{ secrets.ACR_LOGIN_SERVER }}/app:${{ github.sha }}
+          docker build -t $IMAGE .
+          docker push $IMAGE

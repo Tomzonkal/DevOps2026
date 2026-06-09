@@ -28,13 +28,13 @@ jobs:
       - name: Zaloguj sie do ACR
         uses: azure/docker-login@v1
         with:
-          login-server: ${{ secrets.ACR_LOGIN_SERVER }}
-          username: ${{ secrets.AZURE_CLIENT_ID }}
-          password: ${{ secrets.AZURE_CLIENT_SECRET }}
+          login-server: ${{ secrets.ACR_LOGIN_SERVER_420007 }}
+          username: ${{ secrets.AZURE_CLIENT_ID_420007 }}
+          password: ${{ secrets.AZURE_CLIENT_SECRET_420007 }}
 
       - name: Zbuduj i wypchnij obraz
         working-directory: projekt_420007
         run: |
-          IMAGE=${{ secrets.ACR_LOGIN_SERVER }}/app:${{ github.sha }}
+          IMAGE=${{ secrets.ACR_LOGIN_SERVER_420007 }}/app:${{ github.sha }}
           docker build -t $IMAGE .
           docker push $IMAGE

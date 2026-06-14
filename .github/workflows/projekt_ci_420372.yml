@@ -3,10 +3,6 @@ name: CI — Build, Test, Push, Deploy
 on:
   push:
     branches: [projekt_420372]
-    paths:
-      - Projekt/app/**
-      - Projekt/Dockerfile
-      - Projekt/k8s/**
 
 jobs:
   ci-cd:

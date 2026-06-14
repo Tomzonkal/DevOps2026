@@ -1,4 +1,4 @@
-name: CI — Build, Test, Push, Deploy
+name: CI - Build, Test, Push, Deploy
 
 on:
   push:
@@ -15,13 +15,13 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Zainstaluj zależności
+      - name: Zainstaluj zaleznosci
         run: pip install -r Projekt/app/requirements.txt
 
       - name: Uruchom testy
         run: python -m pytest Projekt/app/test_app.py -v
 
-      - name: Zaloguj się do ACR
+      - name: Zaloguj sie do ACR
         uses: docker/login-action@v3
         with:
           registry: ${{ secrets.ACR_LOGIN_SERVER_420372 }}
@@ -34,17 +34,10 @@ jobs:
           docker build -t $IMAGE Projekt/
           docker push $IMAGE
 
-      - name: Zaloguj się do Azure
-        uses: azure/login@v1
-        with:
-          creds: '{"clientId":"${{ secrets.ACR_USERNAME_420372 }}","clientSecret":"${{ secrets.ACR_PASSWORD_420372 }}","subscriptionId":"f6bac7ea-0e06-4bd4-b241-1ce1ac56feec","tenantId":"80b1033f-21e0-4a82-bbc0-f05fdccd3bc8"}'
-
-      - name: Pobierz kubeconfig AKS
+      - name: Ustaw kubeconfig
         run: |
-          az aks get-credentials \
-            --resource-group ${{ secrets.RESOURCE_GROUP_420372 }} \
-            --name ${{ secrets.AKS_NAME_420372 }} \
-            --overwrite-existing
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBECONFIG_420372 }}" > $HOME/.kube/config
 
       - name: Zaktualizuj obraz w AKS
         run: |

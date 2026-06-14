@@ -19,6 +19,10 @@ jobs:
     runs-on: ubuntu-latest
     env:
       ARM_ACCESS_KEY: ${{ secrets.TF_ACCESS_KEY_420372 }}
+      ARM_SUBSCRIPTION_ID: "f6bac7ea-0e06-4bd4-b241-1ce1ac56feec"
+      ARM_TENANT_ID: "80b1033f-21e0-4a82-bbc0-f05fdccd3bc8"
+      ARM_CLIENT_ID: ${{ secrets.ACR_USERNAME_420372 }}
+      ARM_CLIENT_SECRET: ${{ secrets.ACR_PASSWORD_420372 }}
 
     steps:
       - uses: actions/checkout@v4

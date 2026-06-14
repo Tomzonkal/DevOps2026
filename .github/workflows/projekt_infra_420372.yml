@@ -1,0 +1,65 @@
+name: Terraform — Infrastruktura
+
+on:
+  push:
+    branches: [projekt_420372]
+    paths: [Projekt/infra/**]
+  pull_request:
+    paths: [Projekt/infra/**]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: terraform
+  cancel-in-progress: false
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    env:
+      ARM_ACCESS_KEY: ${{ secrets.TF_ACCESS_KEY_420372 }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~1.7"
+
+      - name: Terraform Init
+        working-directory: Projekt/infra
+        run: terraform init
+
+      - name: Terraform Format Check
+        working-directory: Projekt/infra
+        run: terraform fmt -check
+
+      - name: Terraform Validate
+        working-directory: Projekt/infra
+        run: terraform validate
+
+      - name: Terraform Plan
+        id: plan
+        working-directory: Projekt/infra
+        run: terraform plan -no-color -out=tfplan
+        continue-on-error: true
+
+      - name: Dodaj komentarz z planem do PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const plan = `${{ steps.plan.outputs.stdout }}`.substring(0, 65000);
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `### Terraform Plan\n\`\`\`terraform\n${plan}\n\`\`\``
+            });
+
+      - name: Terraform Apply
+        if: github.ref == 'refs/heads/projekt_420372' && github.event_name == 'push'
+        working-directory: Projekt/infra
+        run: terraform apply -auto-approve tfplan

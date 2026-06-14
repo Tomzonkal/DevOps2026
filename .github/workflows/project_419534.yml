@@ -55,7 +55,7 @@ jobs:
           docker rm -f app-test
 
       - name: Zaloguj się do Azure przez OIDC
-        uses: azure/login@v2
+        uses: azure/login@v3
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID_419534 }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID_419534 }}

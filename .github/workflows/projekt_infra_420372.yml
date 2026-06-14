@@ -3,9 +3,8 @@ name: Terraform — Infrastruktura
 on:
   push:
     branches: [projekt_420372]
-    paths: [Projekt/infra/**]
   pull_request:
-    paths: [Projekt/infra/**]
+    branches: [projekt_420372]
 
 permissions:
   contents: read

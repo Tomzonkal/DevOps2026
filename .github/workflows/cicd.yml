@@ -40,7 +40,7 @@ jobs:
       - name: Zbuduj i wypchnij obraz
         run: |
           IMAGE=acrlab04422385.azurecr.io/app:${{ github.sha }}
-          docker build -t $IMAGE .
+          docker build -t $IMAGE Projekt/solution/
           docker push $IMAGE
 
       - name: Pobierz kubeconfig AKS

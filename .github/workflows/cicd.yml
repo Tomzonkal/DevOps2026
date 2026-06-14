@@ -25,7 +25,7 @@ jobs:
         run: pip install flask pytest
 
       - name: Run tests
-        run: pytest Projekt/soultion/tests/ -v
+        run: pytest Projekt/solution/tests/ -v
 
       - name: Zaloguj się do Azure (OIDC)
         uses: azure/login@v2

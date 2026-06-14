@@ -30,9 +30,9 @@ jobs:
       - name: Zaloguj się do Azure (OIDC)
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          client-id: ${{ secrets.AZURE_CLIENT_ID_422385 }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID_422385 }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID_422385 }}
 
       - name: Zaloguj się do ACR
         run: az acr login --name acrlab04422385

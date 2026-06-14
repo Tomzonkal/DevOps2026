@@ -3,7 +3,7 @@ name: CI — Build, Test, Push, Deploy
 on:
   push:
     branches:
-      - lab11/422385
+      - project/422385
 
 permissions:
   id-token: write

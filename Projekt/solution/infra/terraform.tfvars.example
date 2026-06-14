@@ -1,0 +1,9 @@
+# Copy this file to terraform.tfvars and fill in your values.
+# terraform.tfvars is listed in .gitignore — never commit real values!
+
+resource_group_name = "devops2026-rg"
+location            = "westeurope"
+acr_name            = "devops2026acr"   # must be globally unique, lowercase, 5-50 chars
+aks_name            = "devops2026-aks"
+node_count          = 1
+environment         = "dev"

@@ -1,0 +1,7 @@
+.git
+.github
+infra
+k8s
+app/__pycache__
+*.pyc
+.DS_Store

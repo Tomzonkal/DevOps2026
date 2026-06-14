@@ -1,0 +1,89 @@
+name: Project 419534 - Build, Test, Push, Deploy
+
+on:
+  push:
+    branches:
+      - "project/new_branch_419534"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  IMAGE: ${{ secrets.ACR_LOGIN_SERVER_419534 }}/app:${{ github.sha }}
+
+jobs:
+  ci-cd:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Pobierz repozytorium
+        uses: actions/checkout@v4
+
+      - name: Uruchom testy jednostkowe
+        run: |
+          cd app
+          python3 -m unittest -v
+
+      - name: Zbuduj obraz Docker
+        run: docker build -t "$IMAGE" .
+
+      - name: Przetestuj obraz Docker
+        run: |
+          docker run -d \
+            --name app-test \
+            -p 8080:8080 \
+            "$IMAGE"
+
+          for attempt in {1..15}; do
+            if curl --fail --silent http://localhost:8080/health; then
+              echo
+              echo "Test obrazu zakończony powodzeniem."
+              break
+            fi
+
+            if [ "$attempt" -eq 15 ]; then
+              echo "Aplikacja nie odpowiada."
+              docker logs app-test
+              exit 1
+            fi
+
+            sleep 2
+          done
+
+          docker rm -f app-test
+
+      - name: Zaloguj się do Azure przez OIDC
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID_419534 }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID_419534 }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID_419534 }}
+
+      - name: Zaloguj się do ACR
+        run: |
+          az acr login \
+            --name "${{ secrets.ACR_NAME_419534 }}"
+
+      - name: Wyślij obraz do ACR
+        run: docker push "$IMAGE"
+
+      - name: Pobierz dane dostępowe AKS
+        run: |
+          az aks get-credentials \
+            --resource-group "${{ secrets.RESOURCE_GROUP_419534 }}" \
+            --name "${{ secrets.AKS_NAME_419534 }}" \
+            --overwrite-existing
+
+      - name: Zaktualizuj aplikację w AKS
+        run: |
+          kubectl apply -f k8s/deployment.yaml
+          kubectl set image deployment/app app="$IMAGE"
+          kubectl rollout status deployment/app --timeout=300s
+
+      - name: Wyświetl stan wdrożenia
+        run: |
+          kubectl get deployments
+          kubectl get pods
+          kubectl get services

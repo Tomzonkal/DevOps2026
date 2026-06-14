@@ -5,3 +5,15 @@ __pycache__/
 .pytest_cache/
 .env
 Claude.MD
+
+# Terraform
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.tfplan
+.terraform.lock.hcl
+crash.log
+
+# macOS
+.DS_Store
+infra/tfplan

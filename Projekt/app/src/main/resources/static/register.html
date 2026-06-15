@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <title>Rejestracja</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background-color: #f0f2f5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .container {
+      background-color: white;
+      padding: 40px;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      width: 300px;
+      text-align: center;
+    }
+    input {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      box-sizing: border-box;
+    }
+    button {
+      width: 100%;
+      padding: 10px;
+      background-color: #28a745; /* Zielony dla rejestracji */
+      color: white;
+      border: none;
+      border-radius: 5px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    button:hover { background-color: #218838; }
+    .links { margin-top: 15px; font-size: 14px; }
+    a { color: #007bff; text-decoration: none; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h2>Załóż konto</h2>
+  <form id="registerForm">
+    <input type="text" id="username" placeholder="Nazwa użytkownika" required>
+    <input type="password" id="password" placeholder="Hasło" required>
+    <button type="submit">Zarejestruj</button>
+  </form>
+  <div class="links">
+    <a href="index.html">Strona główna</a> | <a href="login.html">Masz już konto?</a>
+  </div>
+</div>
+
+<script>
+  document.getElementById('registerForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const data = {
+      userName: document.getElementById('username').value,
+      password: document.getElementById('password').value
+    };
+    fetch('/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    })
+            .then(response => {
+              if (response.ok) {
+                alert("Konto utworzone! Zaloguj się.");
+                window.location.href = 'login.html';
+              } else {
+                alert("Błąd rejestracji. Nazwa zajęta?");
+              }
+            });
+  });
+</script>
+</body>
+</html>

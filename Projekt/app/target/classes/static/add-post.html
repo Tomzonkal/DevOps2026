@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <title>Dodaj Post</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background-color: #f0f2f5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .container {
+      background-color: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      width: 500px;
+    }
+    h2 { text-align: center; margin-top: 0; }
+    input, textarea {
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      box-sizing: border-box;
+      font-family: inherit;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      font-size: 16px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    button:hover { background-color: #0056b3; }
+    .cancel {
+      display: block;
+      text-align: center;
+      margin-top: 15px;
+      color: #666;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h2>Nowy Post</h2>
+  <form id="postForm">
+    <input type="text" id="title" placeholder="Tytuł posta" required>
+    <textarea id="content" placeholder="O czym chcesz napisać?" required rows="6"></textarea>
+    <button type="submit">Opublikuj</button>
+  </form>
+  <a href="index.html" class="cancel">Anuluj</a>
+</div>
+
+<script>
+  const token = localStorage.getItem('jwt_token');
+  if (!token) window.location.href = 'login.html';
+
+  document.getElementById('postForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const data = {
+      title: document.getElementById('title').value,
+      content: document.getElementById('content').value
+    };
+    fetch('/posts', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      body: JSON.stringify(data)
+    })
+            .then(response => {
+              if (response.ok) window.location.href = 'index.html';
+              else alert("Wystąpił błąd.");
+            });
+  });
+</script>
+</body>
+</html>

@@ -25,5 +25,5 @@ variable "aks_dns_prefix" {
 
 variable "aks_node_vm_size" {
   type    = string
-  default = "Standard_B2s"
+  default = "Standard_B2s_v2"
 }

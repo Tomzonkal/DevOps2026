@@ -10,12 +10,7 @@ resource "azurerm_subnet" "subnet" {
   resource_group_name  = azurerm_resource_group.rg.name
   virtual_network_name = azurerm_virtual_network.vnet.name
   address_prefixes     = ["10.0.1.0/24"]
-
-  # ← TODO: dodaj service_endpoints aby VM komunikowala sie z Storage Account
-  # przez siec szkieletowa Microsoft zamiast przez publiczny internet.
-  # Dokumentacja: https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/subnet#service_endpoints
-  #
-  # service_endpoints = [""]  # ← wpisz wlasciwa nazwe uslugi Azure dla Storage
+  service_endpoints = ["Microsoft.Storage"]
 }
 
 resource "azurerm_network_security_group" "nsg" {

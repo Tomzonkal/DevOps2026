@@ -1,6 +1,6 @@
 variable "resource_group_name" {
   type    = string
-  default = "rg-lab05_422379"
+  default = "rg-lab05"
 }
 
 variable "location" {
@@ -15,12 +15,12 @@ variable "acr_name" {
 
 variable "aks_name" {
   type    = string
-  default = "aks-lab05_422379"
+  default = "aks-lab05"
 }
 
 variable "aks_dns_prefix" {
   type    = string
-  default = "aks-lab05-422379"
+  default = "aks-lab05"
 }
 
 variable "aks_node_vm_size" {

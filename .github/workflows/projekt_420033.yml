@@ -1,4 +1,4 @@
-name: CI — Build and Push to ACR (420033)
+name: CI — Build and Push to ACR (Student 420033)
 
 on:
   push:
@@ -19,6 +19,7 @@ jobs:
           password: ${{ secrets.ACR_PASSWORD_420033 }}
 
       - name: Zbuduj i wypchnij obraz Docker
+        working-directory: Projekt/app
         run: |
           IMAGE_TAG=${{ github.sha }}
           IMAGE_NAME=${{ secrets.ACR_LOGIN_SERVER_420033 }}/blog-app:$IMAGE_TAG

@@ -14,6 +14,22 @@ Szczegółowe wymagania dla każdego poziomu opisane są w osobnych plikach:
 
 ---
 
+## Implementacja LAB-05
+
+Repo zawiera wariant na ocene 5:
+
+- aplikacje HTTP w Pythonie z endpointem `/health`,
+- test jednostkowy uruchamiany w CI,
+- `Dockerfile` budujacy obraz aplikacji na porcie `8080`,
+- manifest Kubernetes dla Deployment + Service LoadBalancer,
+- Terraform dla Resource Group, ACR, AKS i roli `AcrPull`,
+- remote state Terraform w Azure Storage Account,
+- workflow infrastruktury: plan na PR i apply po merge do `main`,
+- workflow aplikacji: test, build, push do ACR i rollout w AKS.
+
+Projekt znajduje sie w podkatalogu `Projekt`, dlatego workflowy GitHub Actions musza finalnie lezec w katalogu `.github/workflows` w root repozytorium.
+
+Nazwy zasobow zawieraja suffix `422379`. Tam, gdzie Azure nie dopuszcza podkreslenia, uzywana jest wersja bez `_`, np. `acrlab05422379` i `stlab05tfstate422379`.
 ## Przegląd architektur
 
 Poniższy diagram przedstawia różnicę między wymaganymi architekturami dla poszczególnych ocen:

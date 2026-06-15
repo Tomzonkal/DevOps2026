@@ -1,0 +1,88 @@
+name: Terraform - Infrastructure
+
+on:
+  push:
+    branches: [projekt_422379]
+    paths:
+      - Projekt/infra/**
+      - .github/workflows/infra.yml
+  pull_request:
+    paths:
+      - Projekt/infra/**
+      - .github/workflows/infra.yml
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: terraform
+  cancel-in-progress: false
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    env:
+      ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID_422379 }}
+      ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID_422379 }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID_422379 }}
+      ARM_USE_OIDC: "true"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login to Azure with OIDC
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID_422379 }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID_422379 }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID_422379 }}
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.7.5"
+
+      - name: Terraform Init
+        working-directory: Projekt/infra
+        run: terraform init -backend-config="storage_account_name=${{ secrets.TF_STORAGE_ACCOUNT_422379 }}"
+
+      - name: Terraform Format Check
+        working-directory: Projekt/infra
+        run: terraform fmt -check
+
+      - name: Terraform Validate
+        working-directory: Projekt/infra
+        run: terraform validate
+
+      - name: Terraform Plan
+        id: plan
+        working-directory: Projekt/infra
+        continue-on-error: true
+        run: |
+          terraform plan -no-color -out=tfplan 2>&1 | tee plan.txt
+          exit ${PIPESTATUS[0]}
+
+      - name: Comment Terraform Plan
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const plan = fs.readFileSync('Projekt/infra/plan.txt', 'utf8').substring(0, 65000);
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `### Terraform Plan\n\`\`\`terraform\n${plan}\n\`\`\``
+            });
+
+      - name: Fail When Plan Failed
+        if: steps.plan.outcome == 'failure'
+        run: exit 1
+
+      - name: Terraform Apply
+        if: github.ref == 'refs/heads/projekt_422379' && github.event_name == 'push'
+        working-directory: Projekt/infra
+        run: terraform apply -auto-approve tfplan

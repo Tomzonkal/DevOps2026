@@ -1,0 +1,69 @@
+name: CI - Build, Test, Push, Deploy
+
+on:
+  push:
+    branches: [projekt_422379]
+    paths:
+      - Projekt/app/**
+      - Projekt/tests/**
+      - Projekt/Dockerfile
+      - Projekt/k8s/**
+      - .github/workflows/ci.yml
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  ci-cd:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run tests
+        working-directory: Projekt
+        run: python -m unittest discover -s tests
+
+      - name: Login to Azure with OIDC
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID_422379 }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID_422379 }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID_422379 }}
+
+      - uses: azure/setup-kubectl@v4
+
+      - name: Login to ACR
+        env:
+          ACR_LOGIN_SERVER: ${{ secrets.ACR_LOGIN_SERVER_422379 }}
+        run: |
+          ACR_NAME="${ACR_LOGIN_SERVER%%.azurecr.io}"
+          az acr login --name "$ACR_NAME"
+
+      - name: Build and push image
+        id: image
+        env:
+          ACR_LOGIN_SERVER: ${{ secrets.ACR_LOGIN_SERVER_422379 }}
+        run: |
+          IMAGE="$ACR_LOGIN_SERVER/app:${{ github.sha }}"
+          docker build --build-arg APP_VERSION=${{ github.sha }} -t "$IMAGE" Projekt
+          docker push "$IMAGE"
+          echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
+
+      - name: Get AKS credentials
+        run: |
+          az aks get-credentials \
+            --resource-group ${{ secrets.RESOURCE_GROUP_422379 }} \
+            --name ${{ secrets.AKS_NAME_422379 }} \
+            --overwrite-existing
+
+      - name: Deploy to AKS
+        run: |
+          kubectl apply -f Projekt/k8s/deployment.yaml
+          kubectl set image deployment/app app=${{ steps.image.outputs.image }}
+          kubectl rollout status deployment/app --timeout=180s

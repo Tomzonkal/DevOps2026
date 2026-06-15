@@ -1,0 +1,82 @@
+# 1. BAZA DANYCH POSTGRESQL (Deployment)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: blog-db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: blog-db
+  template:
+    metadata:
+      labels:
+        app: blog-db
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15-alpine
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: blogdb
+            - name: POSTGRES_USER
+              value: bloguser
+            - name: POSTGRES_PASSWORD
+              value: blogpassword
+---
+# 2. DOSTĘP DO BAZY (Service)
+apiVersion: v1
+kind: Service
+metadata:
+  name: blog-db-service
+spec:
+  selector:
+    app: blog-db
+  ports:
+    - protocol: TCP
+      port: 5432
+      targetPort: 5432
+---
+# 3. APLIKACJA JAVA (Deployment)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: blog-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: blog-app
+  template:
+    metadata:
+      labels:
+        app: blog-app
+    spec:
+      containers:
+        - name: blog-app
+          image: hubertstachdevops.azurecr.io/blog-app:d300458a9c417b50ba1d0370de7ceee67f967e6e
+          ports:
+            - containerPort: 8080
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:postgresql://blog-db-service:5432/blogdb
+            - name: SPRING_DATASOURCE_USERNAME
+              value: bloguser
+            - name: SPRING_DATASOURCE_PASSWORD
+              value: blogpassword
+---
+# 4. DOSTĘP DO APLIKACJI Z INTERNETU (Service LoadBalancer)
+apiVersion: v1
+kind: Service
+metadata:
+  name: blog-app-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: blog-app
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080

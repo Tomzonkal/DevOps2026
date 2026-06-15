@@ -1,0 +1,26 @@
+name: CI — Build and Push to ACR (420033)
+
+on:
+  push:
+    branches: [ projekt_420033 ]
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pobierz kod źródłowy
+        uses: actions/checkout@v4
+
+      - name: Zaloguj się do Azure Container Registry
+        uses: azure/docker-login@v2
+        with:
+          login-server: ${{ secrets.ACR_LOGIN_SERVER_420033 }}
+          username: ${{ secrets.ACR_USERNAME_420033 }}
+          password: ${{ secrets.ACR_PASSWORD_420033 }}
+
+      - name: Zbuduj i wypchnij obraz Docker
+        run: |
+          IMAGE_TAG=${{ github.sha }}
+          IMAGE_NAME=${{ secrets.ACR_LOGIN_SERVER_420033 }}/blog-app:$IMAGE_TAG
+          docker build -t $IMAGE_NAME .
+          docker push $IMAGE_NAME

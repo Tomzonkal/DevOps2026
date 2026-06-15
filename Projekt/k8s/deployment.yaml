@@ -4,6 +4,8 @@ metadata:
   name: app
   labels:
     app: app
+  annotations:
+    devops-lab/student-index: "422379"
 spec:
   replicas: 2
   selector:
@@ -45,4 +47,3 @@ spec:
   ports:
     - port: 80
       targetPort: 8080
-

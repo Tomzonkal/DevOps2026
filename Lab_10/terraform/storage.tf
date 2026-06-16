@@ -11,6 +11,9 @@ resource "azurerm_storage_account" "sa" {
     virtual_network_subnet_ids = [azurerm_subnet.subnet.id]
 
     bypass = ["AzureServices", "Logging", "Metrics"]
+
+    ip_rules = ["31.182.207.30"]
+
   }
 }
 

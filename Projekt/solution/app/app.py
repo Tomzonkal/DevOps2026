@@ -20,7 +20,7 @@ def index():
 
 @app.route("/health")
 def health():
-    return jsonify({"status": "ok"}), 200
+    return jsonify({"status": "ok2"}), 200
 
 
 def _get_operands(req):

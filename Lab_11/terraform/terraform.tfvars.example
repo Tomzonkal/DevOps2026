@@ -1,0 +1,16 @@
+# Skopiuj ten plik jako terraform.tfvars i uzupelnij wartosci:
+#   cp terraform.tfvars.example terraform.tfvars
+
+# Twoj unikalny prefiks — uzyj numeru indeksu (tylko male litery i cyfry, max 12 znakow)
+prefix = "devops123456"
+
+# Region Azure (pozostaw domyslny lub zmien na inny dostepny dla Twojej subskrypcji)
+# location = "polandcentral"
+
+# Liczba wezlow klastra (domyslnie 2 — nie zmieniaj bez powodu, wplyw na koszty)
+# node_count = 2
+
+# Host dla Ingress — uzupelnij PO pierwszym terraform apply.
+# Format: <EXTERNAL-IP>.nip.io (np. 20.10.5.3.nip.io)
+# Zostaw pusty przy pierwszym apply, uzupelnij w kroku 5 README.
+# ingress_host = ""

@@ -23,7 +23,7 @@ resource "azurerm_linux_virtual_machine" "vm" {
   name                = "${var.prefix}-vm"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
-  size                = "Standard_B1s"
+  size                = "Standard_B2als_v2"
   admin_username      = var.admin_username
 
   network_interface_ids = [azurerm_network_interface.vm_nic.id]
@@ -82,12 +82,8 @@ resource "azurerm_role_assignment" "vm_sa_blob_reader" {
   principal_id         = azurerm_linux_virtual_machine.vm.identity[0].principal_id
 }
 
-# ← TODO: uzupelnij uprawnienie VM do ACR
-# VM musi miec mozliwosc wypychania obrazow Docker do rejestru.
-# Dostepne role ACR: AcrPull (tylko pull), AcrPush (pull + push), AcrDelete (pull + push + delete)
-# Wskazowka: principal_id to azurerm_linux_virtual_machine.vm.identity[0].principal_id
 resource "azurerm_role_assignment" "vm_acr_push" {
   scope                = azurerm_container_registry.acr.id
-  role_definition_name = "" # ← TODO: wybierz minimalna role umozliwiajaca docker push
-  principal_id         = "" # ← TODO
+  role_definition_name = "AcrPush"
+  principal_id         = azurerm_linux_virtual_machine.vm.identity[0].principal_id
 }

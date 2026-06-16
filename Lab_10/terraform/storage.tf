@@ -8,13 +8,12 @@ resource "azurerm_storage_account" "sa" {
   network_rules {
     default_action = "Deny"
 
-    # ← TODO: uzupelnij virtual_network_subnet_ids aby Storage Account
-    # rejestrowal subnet jako zaufana siec (service endpoint).
-    # Wskazowka: uzyj azurerm_subnet.subnet.id
-    #
-    virtual_network_subnet_ids = [] # ← TODO
+    virtual_network_subnet_ids = [azurerm_subnet.subnet.id]
 
     bypass = ["AzureServices", "Logging", "Metrics"]
+
+    ip_rules = ["31.182.207.30"]
+
   }
 }
 

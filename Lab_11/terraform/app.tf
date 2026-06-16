@@ -16,7 +16,7 @@ resource "kubernetes_deployment_v1" "podinfo" {
 
   spec {
     # ← TODO: podaj liczbe replik startowych (liczba calkowita, min. 1)
-    replicas = 0
+    replicas = 2
 
     selector {
       match_labels = {
@@ -37,7 +37,7 @@ resource "kubernetes_deployment_v1" "podinfo" {
 
           # ← TODO: podaj obraz Docker z Docker Hub (format: <nazwa>:<tag>)
           # Uzyj oficjalnego obrazu podinfo w wersji 6.6.0
-          image             = "ZMIEN_OBRAZ:ZMIEN_TAG"
+          image             = "stefanprodan/podinfo:6.6.0"
           image_pull_policy = "IfNotPresent"
 
           port {
@@ -49,12 +49,12 @@ resource "kubernetes_deployment_v1" "podinfo" {
               # ← TODO: podaj minimalne zasoby CPU dla kontenera
               # Jednostka "m" oznacza millicores (1000m = 1 vCPU)
               # UWAGA: bez tego pola HPA nie bedzie mogl mierzyc zuzycia CPU!
-              cpu = "ZMIEN_CPU_REQUEST"
+              cpu = "50m"
             }
             limits = {
               # ← TODO: podaj maksymalne zasoby CPU dla kontenera
               # Powinno byc wieksze niz requests (np. 4x wiecej)
-              cpu = "ZMIEN_CPU_LIMIT"
+              cpu = "200m"
             }
           }
 

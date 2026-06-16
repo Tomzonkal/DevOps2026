@@ -26,3 +26,6 @@ Poniższy diagram przedstawia różnicę między wymaganymi architekturami dla p
 
 ---
 
+## Apka
+
+adres -> http://134.112.1.231

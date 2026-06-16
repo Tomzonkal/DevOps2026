@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.git/
+.gitignore
+README.md
+k8s/
+image.png
+LAB-03-podstawowy-cicd.md
+LAB-04-terraform-auto-deploy.md
+LAB-05-gitops-remote-state.md

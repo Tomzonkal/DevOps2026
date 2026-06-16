@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: devops-projekt-420067
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: devops-projekt-420067
+  template:
+    metadata:
+      labels:
+        app: devops-projekt-420067
+    spec:
+      containers:
+        - name: devops-projekt-420067
+          image: ACR_LOGIN_SERVER/app:TAG
+          ports:
+            - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: devops-projekt-420067-svc
+spec:
+  type: LoadBalancer
+  selector:
+    app: devops-projekt-420067
+  ports:
+    - port: 80
+      targetPort: 8080

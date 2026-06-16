@@ -1,0 +1,49 @@
+name: 'Test Python Environment'
+description: 'Ustawia srodowisko Python, instaluje zaleznosci i uruchamia testy REST API'
+
+inputs:
+  python-version:
+    description: 'Wersja Pythona do uzycia (np. 3.9, 3.10, 3.11)'
+    required: true
+  app-path:
+    description: 'Sciezka do folderu aplikacji (np. Lab_9/app_123456)'
+    required: true
+
+runs:
+  using: composite   # <- NIE zmieniaj tej linii
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.UZUPELNIJ }}  # <- TODO: wstaw nazwe odpowiedniego inputu
+
+    - name: Install dependencies
+      shell: bash
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r UZUPELNIJ/requirements.txt  # <- TODO: wstaw wyrazenie ${{ inputs.XXX }} dla sciezki do folderu
+
+    - name: Start server
+      shell: bash
+      run: |
+        python UZUPELNIJ/app.py &  # <- TODO: wstaw wyrazenie ${{ inputs.XXX }} dla sciezki
+        for i in $(seq 1 30); do
+          if curl -fsS http://localhost:5000/health > /dev/null 2>&1; then
+            echo "Serwer gotowy po ${i}s"
+            break
+          fi
+          if [ "$i" -eq 30 ]; then
+            echo "::error::Serwer nie uruchomil sie w ciagu 30 sekund"
+            exit 1
+          fi
+          sleep 1
+        done
+
+    - name: Run tests
+      # <- TODO: dodaj wymagane pole shell: dla tego kroku (composite actions wymagaja jawnego shella)
+      run: python -m pytest UZUPELNIJ/test_app.py -v  # <- TODO: wstaw wyrazenie ${{ inputs.XXX }}
+
+    - name: Stop server
+      if: always()
+      shell: bash
+      run: pkill -f "python.*app.py" || true

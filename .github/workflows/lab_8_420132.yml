@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - lab_8/new_branch_420132
+
+jobs:
+  build-test-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r Lab_8/app_420132/requirements.txt
+
+      - name: Start application in background
+        run: |
+          python Lab_8/app_420132/app.py &
+          for i in {1..10}; do
+            curl -s http://localhost:5000/health && break
+            sleep 1
+          done
+
+      - name: Run tests
+        run: python -m pytest Lab_8/app_420132/test_app.py -v
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME_420132 }}
+          password: ${{ secrets.DOCKERHUB_TOKEN_420132 }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: Lab_8/app_420132
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME_420132 }}/lab8-app-420132:latest

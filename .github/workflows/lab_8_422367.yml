@@ -1,0 +1,53 @@
+name: Lab 8 - CI/CD Pipeline (422367)
+
+on:
+  push:
+    branches:
+      - lab_8/new_branch_422367
+
+jobs:
+  test-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout kodu repozytorium
+        uses: actions/checkout@v4
+
+      - name: Konfiguracja Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Instalacja zależności
+        run: pip install -r Lab_8/app_422367/requirements.txt
+
+      - name: Uruchomienie aplikacji w tle i oczekiwanie na gotowość
+        run: |
+          python Lab_8/app_422367/app.py &
+          echo "Oczekiwanie na gotowość serwera..."
+          for i in $(seq 1 15); do
+            if curl -sf http://localhost:5000/health; then
+              echo "Serwer gotowy."
+              exit 0
+            fi
+            echo "Próba $i/15 – czekam 2 sekundy..."
+            sleep 2
+          done
+          echo "Serwer nie odpowiedział w czasie. Przerywam."
+          exit 1
+
+      - name: Uruchomienie testów
+        run: python -m pytest Lab_8/app_422367/test_app.py -v
+
+      - name: Logowanie do Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Budowanie i wysyłanie obrazu Docker
+        uses: docker/build-push-action@v6
+        with:
+          context: Lab_8/app_422367
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/lab8-app-422367:latest

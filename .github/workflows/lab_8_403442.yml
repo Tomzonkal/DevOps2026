@@ -1,0 +1,69 @@
+name: Lab 8 CI/CD Docker Pipeline
+
+on:
+  push:
+    branches:
+      - lab_8/new_branch_403442
+
+jobs:
+  build-test-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout repo
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Setup Python
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # 3. Install dependencies
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r Lab_8/app_403442/requirements.txt
+
+      # 4. Start application in background
+      - name: Start Flask app
+        run: |
+          python Lab_8/app_403442/app.py &
+          echo $! > flask.pid
+
+      # 5. Wait for healthcheck
+      - name: Wait for API to be ready
+        run: |
+          for i in {1..30}; do
+            curl -s http://localhost:5000/health && exit 0
+            echo "Waiting for app..."
+            sleep 2
+          done
+          echo "App did not start in time" && exit 1
+
+      # 6. Run tests
+      - name: Run tests
+        run: |
+          python -m pytest Lab_8/app_403442/test_app.py -v
+
+      # 7. Log in to Docker Hub
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME_403442 }}
+          password: ${{ secrets.DOCKERHUB_TOKEN_403442 }}
+
+      # 8. Build and push Docker image
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: Lab_8/app_403442
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME_403442 }}/lab8-app-403442:latest
+
+      # 9. Cleanup (optional but good practice)
+      - name: Stop Flask app
+        if: always()
+        run: |
+          if [ -f flask.pid ]; then kill $(cat flask.pid) || true; fi

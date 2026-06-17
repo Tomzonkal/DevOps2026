@@ -5,3 +5,13 @@ __pycache__/
 .pytest_cache/
 .env
 Claude.MD
+
+**/.terraform/
+terraform.tfstate
+terraform.tfstate.backup
+*.tfplan
+*.tfstate
+
+github-main.json
+github-pr.json
+github-projekt.json

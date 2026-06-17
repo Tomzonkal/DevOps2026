@@ -1,0 +1,83 @@
+name: Projekt - Terraform Infrastructure 422971
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - Projekt/infra/**
+  pull_request:
+    paths:
+      - Projekt/infra/**
+
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: projekt-terraform-422971
+  cancel-in-progress: false
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+
+    env:
+      ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID_422971 }}
+      ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID_422971 }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID_422971 }}
+      ARM_USE_OIDC: "true"
+      ARM_USE_AZUREAD: "true"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.7.5"
+
+      - name: Terraform Init
+        working-directory: Projekt/infra
+        run: terraform init
+
+      - name: Terraform Format Check
+        working-directory: Projekt/infra
+        run: terraform fmt -check
+
+      - name: Terraform Validate
+        working-directory: Projekt/infra
+        run: terraform validate
+
+      - name: Terraform Plan
+        id: plan
+        working-directory: Projekt/infra
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          terraform plan -no-color -out=tfplan 2>&1 | tee plan.txt
+
+      - name: Add Terraform Plan as PR comment
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const plan = fs.readFileSync('Projekt/infra/plan.txt', 'utf8').substring(0, 65000);
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `### Terraform Plan - Projekt 422971\n\`\`\`terraform\n${plan}\n\`\`\``
+            });
+
+      - name: Stop if Terraform Plan failed
+        if: steps.plan.outcome == 'failure'
+        run: exit 1
+
+      - name: Terraform Apply
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        working-directory: Projekt/infra
+        run: terraform apply -auto-approve tfplan

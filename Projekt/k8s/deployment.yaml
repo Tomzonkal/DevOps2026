@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app
+  labels:
+    app: projekt-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: projekt-app
+  template:
+    metadata:
+      labels:
+        app: projekt-app
+    spec:
+      containers:
+        - name: app
+          image: nginx:latest
+          ports:
+            - containerPort: 5000

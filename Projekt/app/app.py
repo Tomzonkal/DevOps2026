@@ -6,7 +6,7 @@ app = Flask(__name__)
 @app.route("/")
 def home():
     return jsonify({
-        "message": "Lab 05 GitOps app",
+        "message": "DevOps",
         "student_index": "422971",
         "status": "running"
     })

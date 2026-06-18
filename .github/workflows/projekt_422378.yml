@@ -1,0 +1,54 @@
+name: Projekt 4.0 - CI/CD 422378
+
+on:
+  push:
+    branches: [ "projekt_422378" ]
+
+# Wymagane uprawnienia dla OIDC (Logowanie bez hasła)
+permissions:
+  id-token: write
+  contents: read
+
+# Zwykłe nazwy zasobów podajemy jawnym tekstem
+env:
+  ACR_LOGIN_SERVER: "acr422378devops.azurecr.io"
+  AKS_NAME: "aks-projekt-422378"
+  RESOURCE_GROUP: "rg-projekt-422378"
+  ACR_NAME: "acr422378devops"
+
+jobs:
+  ci-cd:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Zaloguj się do Azure (OIDC)
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID_422378 }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID_422378 }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID_422378 }}
+
+      - name: Zaloguj się do ACR
+        run: az acr login --name ${{ env.ACR_NAME }}
+
+      - name: Zbuduj i wypchnij obraz
+        run: |
+          IMAGE=${{ env.ACR_LOGIN_SERVER }}/app:${{ github.sha }}
+          docker build -t $IMAGE Projekt_422378/
+          docker push $IMAGE
+
+      - name: Pobierz kubeconfig AKS
+        run: |
+          az aks get-credentials \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --name ${{ env.AKS_NAME }} \
+            --overwrite-existing
+            
+      - name: Wdrozenie / Aktualizacja w AKS
+        run: |
+          kubectl apply -f Projekt_422378/k8s/deployment.yaml
+          kubectl set image deployment/app \
+            app=${{ env.ACR_LOGIN_SERVER }}/app:${{ github.sha }}
+          kubectl rollout status deployment/app --timeout=120s

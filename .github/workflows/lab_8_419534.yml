@@ -1,0 +1,70 @@
+name: lab_8_github_actions
+
+on:
+  push:
+    branches:
+      - lab_8/new_branch_419534
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  test-build-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r Lab_8/app_419534/requirements.txt
+          pip install pytest requests
+
+      - name: Start Flask application
+        run: |
+          python Lab_8/app_419534/app.py > app.log 2>&1 &
+          echo $! > app.pid
+
+      - name: Wait for application health check
+        run: |
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:5000/health; then
+              echo "Application is ready"
+              exit 0
+            fi
+            echo "Waiting for application..."
+            sleep 1
+          done
+          echo "Application did not start correctly"
+          cat app.log
+          exit 1
+
+      - name: Run pytest tests
+        run: |
+          python -m pytest Lab_8/app_419534/test_app.py -v
+
+      - name: Prepare Docker image tag
+        run: |
+          echo "IMAGE_TAG=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/lab8-app-419534:latest" >> $GITHUB_ENV
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: Lab_8/app_419534
+          push: true
+          tags: ${{ env.IMAGE_TAG }}

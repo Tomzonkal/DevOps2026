@@ -23,15 +23,19 @@ resource "azurerm_container_registry" "main" {
 
 resource "azurerm_kubernetes_cluster" "main" {
   name                = var.aks_name
-  resource_group_name = azurerm_resource_group.main.name
   location            = azurerm_resource_group.main.location
-  dns_prefix          = var.aks_name
+  resource_group_name = azurerm_resource_group.main.name
+  dns_prefix          = "aks-projekt" # (tutaj zostaw to, co masz)
+
+  # DODAJ TĘ LINIJKĘ:
+  oidc_issuer_enabled = true
 
   default_node_pool {
     name       = "default"
     node_count = 1
     vm_size    = "Standard_B2s_v2"
   }
+
   identity { type = "SystemAssigned" }
 }
 

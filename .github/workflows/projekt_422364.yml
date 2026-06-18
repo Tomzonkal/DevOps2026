@@ -1,0 +1,29 @@
+name: CI — Build, Test, Push 422364
+
+on:
+  push:
+    branches: [projekt/new_branch_422364]
+
+jobs:
+  build-test-push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Uruchom testy
+        run: |
+          pip install -r Projekt/app_422364/requirements.txt
+          pytest Projekt/app_422364/
+
+      - name: Zaloguj się do ACR
+        uses: azure/docker-login@v1
+        with:
+          login-server: ${{ secrets.ACR_LOGIN_SERVER_422364 }}
+          username: ${{ secrets.ACR_USERNAME_422364 }}
+          password: ${{ secrets.ACR_PASSWORD_422364 }}
+
+      - name: Zbuduj i wypchnij obraz
+        run: |
+          IMAGE=${{ secrets.ACR_LOGIN_SERVER_422364 }}/app:${{ github.sha }}
+          docker build -t $IMAGE Projekt/app_422364/
+          docker push $IMAGE

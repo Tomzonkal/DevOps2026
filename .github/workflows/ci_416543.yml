@@ -1,0 +1,45 @@
+name: CI — Build, Test, Push, Deploy
+
+on:
+  push:
+    branches: [projekt/416543clean]
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  ci-cd:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID_416543 }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID_416543 }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID_416543 }}
+
+      - name: Login to ACR
+        run: az acr login --name acrprojekt416543
+
+      - name: Build and push Docker image
+        run: |
+          IMAGE=acrprojekt416543.azurecr.io/app:${{ github.sha }}
+          docker build -t $IMAGE Projekt/416543/
+          docker push $IMAGE
+
+      - name: Get AKS credentials
+        run: |
+          az aks get-credentials \
+            --resource-group rg-projekt416543 \
+            --name aks-projekt416543 \
+            --overwrite-existing
+
+      - name: Deploy to AKS
+        run: |
+          kubectl apply -f Projekt/416543/k8s/deployment.yaml
+          kubectl set image deployment/app \
+            app=acrprojekt416543.azurecr.io/app:${{ github.sha }}
+          kubectl rollout status deployment/app --timeout=120s

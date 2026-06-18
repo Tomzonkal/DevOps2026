@@ -1,0 +1,37 @@
+name: lab_7_419534 CI
+
+on:
+  push:
+    branches:
+      - lab_7/new_branch_419534
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: Lab_7/app_419534
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pytest requests
+
+      - name: Start application
+        run: |
+          python calculator.py &
+          sleep 5
+
+      - name: Run tests
+        run: |
+          python -m pytest test_calculator.py -v

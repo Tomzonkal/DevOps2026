@@ -23,6 +23,7 @@ public class User implements UserDetails {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Getter
     private String userName;
     private String password;
 
@@ -59,4 +60,5 @@ public class User implements UserDetails {
     public boolean isEnabled() {
         return true;
     }
+
 }

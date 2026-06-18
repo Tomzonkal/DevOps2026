@@ -5,3 +5,8 @@ __pycache__/
 .pytest_cache/
 .env
 Claude.MD
+# Terraform lokalny stan
+**/.terraform/
+**/*.tfstate
+**/*.tfstate.backup
+**/.terraform.lock.hcl

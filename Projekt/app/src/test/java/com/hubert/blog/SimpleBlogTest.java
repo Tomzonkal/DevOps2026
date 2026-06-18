@@ -61,7 +61,7 @@ public class SimpleBlogTest {
         // 3. Sprawdzenie poprawności (Then)
         assertNotNull(savedUser);
         assertEquals(1L, savedUser.getId());
-        assertEquals("hubert_test", savedUser.getUserName());
+        assertEquals("hubert_test", savedUser.getUsername());
         assertEquals("encodedPassword", savedUser.getPassword());
 
         // Weryfikacja czy metody na atrapach zostały wywołane dokładnie 1 raz

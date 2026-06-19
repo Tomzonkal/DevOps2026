@@ -21,7 +21,7 @@ HTML_TEMPLATE = """
 </head>
 <body>
     <div class="calculator">
-        <h2>Kalkulator AKS 422378</h2>
+        <h2>Kalkulator AKS 422378 123456</h2>
         <form method="POST">
             <input type="number" name="num1" step="any" placeholder="Pierwsza liczba" required value="{{ num1 }}">
             <select name="operation">

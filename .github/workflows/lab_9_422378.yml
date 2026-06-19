@@ -1,0 +1,23 @@
+name: CI Matrix Pipeline
+
+on:
+  push:
+    branches:
+      - lab_9/new_branch_422378
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.9', '3.10', '3.11']
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Test with Python ${{ matrix.python-version }}
+        uses: ./.github/actions/test-python-env-422378
+        with:
+          python-version: ${{ matrix.python-version }}
+          app-path: Lab_9/app_422378

@@ -3,7 +3,7 @@
 from flask import Flask, request, jsonify
 from model_0000 import model as model_0000
 from model_123456 import model as model_123456
-
+from model_422973 import model as model_422973
 
 ###########################################
 
@@ -18,6 +18,18 @@ def model_00000_input():
     input=data["input"]
     #Wykonywanie predykcji
     result=model_0000.run_model_0000(input=input)
+    return jsonify({'result': result}), 200
+
+#######################################################################
+
+##### Ta funkcja powinna być skopiowana do utowrzenia nowego endpointa####################3
+@app.route('/api/model_422973', methods=['POST'])
+def model_422973_input():
+    # Pobieranie treści zapytania w naszym przypadku array[4]
+    data = request.get_json()
+    input=data["input"]
+    #Wykonywanie predykcji
+    result=model_422973.run_model_422973(input=input)
     return jsonify({'result': result}), 200
 
 #######################################################################

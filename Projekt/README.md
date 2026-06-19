@@ -25,4 +25,4 @@ Poniższy diagram przedstawia różnicę między wymaganymi architekturami dla p
 - **Ocena 5** — Pełna automatyzacja: Terraform plan wykonywany na każdym PR jako komentarz, apply po merge do `main`, state przechowywany zdalnie w Azure Storage Account, autoryzacja przez Workload Identity Federation (OIDC) bez długożyciowych sekretów.
 
 ---
-
+aa

@@ -19,13 +19,13 @@ jobs:
       - name: Zaloguj się do ACR
         uses: azure/docker-login@v1
         with:
-          login-server: ${{ secrets.ACR_LOGIN_SERVER }}
-          username: ${{ secrets.AZURE_CLIENT_ID }}
-          password: ${{ secrets.AZURE_CLIENT_SECRET }}
+          login-server: acrlab03tadlesz3.azurecr.io
+          username: acrlab03tadlesz3
+          password: Y8sp0VgKJWLR6sUe9vBTaivBJmQKEewgBZsJTEed0V9WRJJLM8OaJQQJ99CFACE1PydEqg7NAAACAZCRzhrT
 
       - name: Zbuduj i wypchnij obraz
         run: |
-          IMAGE=${{ secrets.ACR_LOGIN_SERVER }}/app:${{ github.sha }}
+          IMAGE=acrlab03tadlesz3.azurecr.io/app:${{ github.sha }}
           cd Projekt
           docker build -t $IMAGE .
           docker push $IMAGE

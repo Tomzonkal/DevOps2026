@@ -1,0 +1,47 @@
+name: Lab 8 Docker CI/CD
+
+on:
+  push:
+    branches:
+      - lab_8/new_branch_420943
+
+jobs:
+  docker-ci-cd:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r Lab_8/app_420943/requirements.txt
+
+      - name: Start application and wait for healthcheck
+        run: |
+          python Lab_8/app_420943/app.py &
+          for i in {1..30}; do
+            curl -f http://localhost:5000/health && exit 0
+            sleep 1
+          done
+          exit 1
+
+      - name: Run pytest tests
+      
+        run: python -m pytest Lab_8/app_420943/test_app.py -v
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: kamalolelon
+          password: ${{ secrets.DOCKERHUB_TOKEN_420943 }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: Lab_8/app_420943
+          push: true
+          tags: kamalolelon/lab8-app-420943:latest
